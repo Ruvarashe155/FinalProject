@@ -213,7 +213,7 @@ mysqlclient==2.2.7
 openpyxl==3.0.10
 # overrides @ file:///croot/overrides_1699371140756/work
 # packaging==26.0
-# pandas @ file:///croot/pandas_1702317985682/work/dist/pandas-2.1.4-cp311-cp311-linux_x86_64.whl#sha256=a15c481f210e34ff91dac4944a5f8f0fe38ff2c3afa7c45ea621ff460d6f9b57
+pandas @ file:///croot/pandas_1702317985682/work/dist/pandas-2.1.4-cp311-cp311-linux_x86_64.whl#sha256=a15c481f210e34ff91dac4944a5f8f0fe38ff2c3afa7c45ea621ff460d6f9b57
 # pandocfilters @ file:///opt/conda/conda-bld/pandocfilters_1643405455980/work
 # panel @ file:///croot/panel_1706539561184/work
 # param @ file:///croot/param_1705937765746/work
