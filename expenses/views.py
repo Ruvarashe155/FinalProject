@@ -889,11 +889,11 @@ def index(request):
 DB_NAME = settings.DATABASES['default']['NAME']
 DB_USER = settings.DATABASES['default']['USER']
 BACKUP_FOLDER = "backups"
-<<<<<<< HEAD
+
 SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  
-=======
-SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  # Use the custom socket path
->>>>>>> 83fe6095e7a54745dd6b61f462be948df19ca639
+
+# SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  # Use the custom socket path
+
 
 os.makedirs(BACKUP_FOLDER, exist_ok=True)
 
