@@ -1,6 +1,3 @@
-from django.shortcuts import render
-
-# Create your views here.
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from .models import *
 from django.contrib.auth.decorators import login_required
@@ -8,29 +5,76 @@ from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
-from django.db.models import Sum, Value, DecimalField 
+from django.db.models import Sum, Value, DecimalField , F, Count
 from django.db.models.functions import Coalesce
+from .utils import log_action
+from django .core.files.storage import FileSystemStorage
+import pandas as pd
+from django.http import HttpResponse
+from decimal import Decimal
+from django.db.models import Q
+from .utils import notify
+from datetime import date
+import subprocess
+import os
+from datetime import datetime
+from django.conf import settings
+from django.db.models.functions import Coalesce
+from django.core.mail import send_mail
+from django.conf import settings
+
+
 
 
 
 def login_user(request):
+
     if request.method == 'POST':
+
         try:
+
             username = request.POST.get('username')
             password = request.POST.get('password')
 
             if not username or not password:
                 raise ValueError("Username and password are required.")
 
-            user = authenticate(request, username=username, password=password)
+            user = authenticate(
+                request,
+                username=username,
+                password=password
+            )
+
             if user is not None:
+
                 login(request, user)
-                return JsonResponse({'success': True, 'message': 'Login successful'})
+
+                log_action(
+                    user=user,
+                    action="LOGIN",
+                    details=f"{user.fullname} logged into the system"
+                )
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Login successful'
+                })
+
             else:
-                return JsonResponse({'success': False, 'message': 'Incorrect username or password'})
+
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Incorrect username or password'
+                })
+
         except Exception as e:
-            return JsonResponse({'success': False, 'message': 'An error occurred during login.', 'error': str(e)})
-        
+
+            return JsonResponse({
+                'success': False,
+                'message': 'An error occurred during login.',
+                'error': str(e)
+            })
+
     return render(request, 'login.html')
 
 
@@ -39,23 +83,46 @@ def logoutuser(request):
     return render(request, 'login.html')
 
 
+
+@login_required
 def home(request):
     expenses = ExpenseRequest.objects.all()
-    notifications = Notification.objects.filter(user=request.user).order_by('-timestamp')
+    notifications = Notification.objects.filter(user=request.user, read=0).order_by('-timestamp')
     return render(request, 'home.html', {'expenses': expenses, "notifications":notifications})
 
-from django.shortcuts import redirect, get_object_or_404
-from .models import Notification
 
+
+@login_required
 def mark_notification_read(request, pk):
     note = get_object_or_404(Notification, pk=pk, user=request.user)
     note.mark_as_read()
-    return redirect("expenses:home")  # or wherever you want to send the user back
+    return redirect("expenses:notifications")  
+
 
 
 @login_required
 def save_department(request):
     if request.method=="POST":
+    
+        if 'excel_file' in request.FILES:
+            excel_file = request.FILES['excel_file']
+            fs = FileSystemStorage()
+            filename = fs.save(excel_file.name, excel_file)
+            file_path = fs.path(filename)
+
+            
+            df = pd.read_excel(file_path)
+
+            for _, row in df.iterrows():
+                # department = Department.objects.get(code=row['department_id'])
+                Department.objects.create(
+                    code=row['code'],
+                    name=row['name'],
+                    head_of_department=row['head_of_department'],
+                    description=row['description'],
+                   
+                )
+            return redirect('expenses:save_department')   
 
         code=request.POST.get('code')
         name=request.POST.get('name')
@@ -71,15 +138,34 @@ def save_department(request):
             existing_dep.code=code
             existing_dep.head_of_department=hod
             existing_dep.save()
+            log_action(request.user, "Department Edited", existing_dep, details=f"Department '{existing_dep.name}' edited")
 
         else:
             department=Department(name=name, code=code, description=description, head_of_department=hod)
             department.save()
+            log_action(request.user, "Department Saved", department, details=f"Department '{department.name}' saved")
 
     context={
         'department_list': Department.objects.all()
     }    
     return render(request, 'department.html', context)
+
+
+
+@login_required
+def download_department_template(request):
+   
+    columns = ["name", "description", "head_of_department", "code"]
+    df = pd.DataFrame(columns=columns)
+
+   
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="department_template.xlsx"'
+
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Departments')
+
+    return response
 
 
 @login_required
@@ -94,14 +180,17 @@ def save_category(request):
             existing_cat.name=name
             existing_cat.description=description
             existing_cat.save()
+            log_action(request.user, "Category Edited", existing_cat, details=f"Expense category '{existing_cat.name}' edited")
         else:    
             category=ExpenseCategory(name=name,  description=description,)
             category.save()
+            log_action(request.user, "Category Saved", category, details=f"Expense category '{category.name}' saved")
 
     context={
         'category_list': ExpenseCategory.objects.all()
     }    
     return render(request, 'category.html', context)
+
 
 
 @login_required
@@ -115,6 +204,29 @@ def save_user(request):
     
     
     if request.method == "POST":
+    
+        if 'excel_file' in request.FILES:
+            excel_file = request.FILES['excel_file']
+            fs = FileSystemStorage()
+            filename = fs.save(excel_file.name, excel_file)
+            file_path = fs.path(filename)
+
+           
+            df = pd.read_excel(file_path)
+
+            for _, row in df.iterrows():
+                department = Department.objects.get(code=row['department_id'])
+                CustomUser.objects.create_user(
+                    username=row['email'],
+                    password=row['password'],
+                    fullname=row['fullname'],
+                    department=department,
+                    role=row['role'],
+                    email=row['email'],
+                    is_active=row['active']
+                )
+            return redirect('expenses:save_user')    
+        
 
 
         fullname = request.POST.get('fullname')
@@ -125,7 +237,7 @@ def save_user(request):
         id=request.POST.get('id')
         is_active=request.POST.get('active')
 
-        # Get department by ID
+       
         department = Department.objects.get(id=department_id)
 
         if id:
@@ -137,20 +249,22 @@ def save_user(request):
             existing_user_entry.email=email
             existing_user_entry.is_active = is_active
             existing_user_entry.save()
+            log_action(request.user, "User Edited", existing_user_entry, details=f"User '{existing_user_entry.fullname}'edited")
 
-        # Create user (using fullname as username for simplicity)
+        
         else:
             user = CustomUser.objects.create_user(
-                username=email.replace(" ", ""),  # simple username
-                password=password,  # you can later add a password field in the form
+                username=email.replace(" ", ""),  
+                password=password,  
                 fullname=fullname,
                 department=department,
                 role=role,
                 email=email,
                 is_active= is_active
             )
+            log_action(request.user, "User Saved", user, details=f"User '{user.fullname}' saved")
 
-        return redirect('expenses:save_user')  # redirect after saving
+        return redirect('expenses:save_user')  
 
     context = {
         'department_list': Department.objects.all(),
@@ -160,48 +274,62 @@ def save_user(request):
     return render(request, 'users.html', context)
 
 
-from django.utils import timezone
-from decimal import Decimal
-from django.db.models import Q
+
+@login_required
+def download_user_template(request):
+   
+    columns = ["fullname", "email", "password", "role", "department_id", "active"]
+
+ 
+    df = pd.DataFrame(columns=columns)
+
+ 
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="user_template.xlsx"'
+
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Users')
+
+    return response
+
+
+
+
 
 @login_required
 def create_expense_request(request):
     user = request.user 
     if user.role == "Staff": 
         expenses = ExpenseRequest.objects.filter(user=user) 
-    elif user.role in ["Head", "Dean"]: 
+    elif user.role in ["Dean", "Head"]: 
         expenses = ExpenseRequest.objects.filter(department=user.department) 
     elif user.role == "Finance": 
         expenses = ExpenseRequest.objects.filter(Q(status="Approved",) |Q(status="Disbursed")) 
 
-    elif user.role == "Admin":  # Admin can see all expenses
+    elif user.role == "Admin": 
         expenses = ExpenseRequest.objects.all() 
 
-    elif user.role == "Dean":  # Admin can see all expenses
+    elif user.role == "Dean":  
         expenses = ExpenseRequest.objects.all() 
     
 
     else: 
         expenses = ExpenseRequest.objects.none()
+
         
     if request.method == "POST":
+        
 
         try:
-            # ---- Main Request Fields ----
+           
             name = request.POST.get("name")
             date = request.POST.get("date")
             description = request.POST.get("description")
             total_amount = request.POST.get("total_amount")
             category = ExpenseCategory.objects.get(id=request.POST.get("category"))
-            # user = CustomUser.objects.get(id=request.POST.get("user"))
             user= request.user
-            
-            # department = Department.objects.get(code=request.POST.get("department"))
             department = request.user.department
            
-
-
-
 
             today = timezone.now().date()
             budget = DepartmentBudget.objects.filter(
@@ -217,16 +345,20 @@ def create_expense_request(request):
             spent_amount = ExpenseRequest.objects.filter(
             department=department,
             date__gte=budget.start_date,
-            date__lte=budget.end_date
-            ).aggregate(total=models.Sum('total_amount'))['total'] or Decimal('0.00')
+            date__lte=budget.end_date,
+            status__in=['Approved', 'Disbursed']  
+            ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
 
-            if spent_amount + Decimal(total_amount) > budget.budget_amount: 
-                messages.error(request, "Request exceeds department budget!") 
+            spent_amount = Decimal(spent_amount)
+            total_amount = Decimal(total_amount)  
+            budget_limit = Decimal(budget.budget_amount)
+
+           
+            if spent_amount + total_amount > budget_limit:
+                messages.error(request, "Request exceeds department budget!")
                 return redirect("expenses:create_expense")
 
 
-
-            # ---- Create Expense Request ----
             expense_request = ExpenseRequest.objects.create(
                 name=name,
                 date=date,
@@ -236,8 +368,13 @@ def create_expense_request(request):
                 department=department,
                 user=user
             )
+           
+            log_action(request.user, "Expense Request Saved", expense_request, details=f"Expense Request '{expense_request.name}' saved")
+            
 
-            # ---- Create Expense Items ----
+
+            
+          
             index = 0
             while True:
                 desc_key = f"items[{index}][description]"
@@ -246,26 +383,51 @@ def create_expense_request(request):
                 item_desc = request.POST.get(desc_key)
                 item_amount = request.POST.get(amount_key)
 
+                if not request.POST.get("items[0][description]"):
+                    messages.error(request, "Add at least one expense item.")
+                    return redirect("expenses:create_expense")
+
                 if item_desc and item_amount:
                     ExpenseItem.objects.create(
                         request=expense_request,
                         description=item_desc,
                         amount=item_amount
                     )
+                    # log_action(request.user, "Expense Items Saved", ExpenseItem, details=f"Department '{ExpenseItem.description}' saved")
+                    send_mail(
+                    subject='Expense Request Submitted',
+
+                    message=f'''
+                Hello {request.user.fullname},
+
+                Your expense request has been submitted successfully.
+
+                Expense Title: {expense_request.name}
+                Amount: {expense_request.total_amount}
+                Status: {expense_request.status}
+
+                Thank you.
+                Expense Management System
+                ''',
+
+                    from_email=settings.EMAIL_HOST_USER,
+
+                    recipient_list=[request.user.email],
+
+                    fail_silently=False,
+                )
                 else:
-                    break  # No more items
+                    break 
 
                 index += 1
 
             messages.success(request, "Expense Request created successfully!")
-            # return redirect("expenses:list")  # Change to your correct list view
+           
 
         except Exception as e:
             messages.error(request, f"Error saving expense: {e}")
-            return redirect("expenses:create_expense")  # Return to the form page
+            return redirect("expenses:create_expense") 
 
-
-   
 
     context= {
         "categories": ExpenseCategory.objects.all(),
@@ -277,6 +439,7 @@ def create_expense_request(request):
     }
 
     return render(request, "expenses.html", context)
+
 
 
 @login_required
@@ -303,11 +466,11 @@ def expense_detail(request, expense_id):
 
 
 
-
+@login_required
 def add_item(request, expense_id):
     expense_request = get_object_or_404(ExpenseRequest, id=expense_id)
 
-    # Only Dean or Head can add items
+    
     if request.method == "POST" and request.user.role in ["Dean", "Head"]:
         description = request.POST.get("description")
         amount = request.POST.get("amount")
@@ -320,13 +483,13 @@ def add_item(request, expense_id):
             )
             expense_request.recalculate_total()
 
-        # After adding, redirect back to the detail page
         return redirect("expenses:expense_detail", expense_id=expense_id)
 
-    # If not POST or not authorized, just show the detail page
     return redirect("expenses:expense_detail", expense_id=expense_id)
 
 
+
+@login_required
 def delete_item(request, item_id):
     item = get_object_or_404(ExpenseItem, id=item_id)
     expense_id = item.request.id
@@ -352,7 +515,7 @@ def cancel_expense_request(request, request_id):
   
     expense_request.cancel()
 
-    # Save history of the cancellation action
+   
     DepartmentExpenseRequestHistory.objects.create(
         expense_request=expense_request,
         department=expense_request.department,
@@ -365,15 +528,12 @@ def cancel_expense_request(request, request_id):
 
 
 
-from django.utils import timezone
-from .utils import notify
-
 
 @login_required
 def approve_expense_request(request, pk):
     expense = get_object_or_404(ExpenseRequest, id=pk)
 
-    # Only Dean or Head can approve
+   
     if request.user.role not in ["Dean", "Head"]:
         messages.error(request, "You are not authorized to approve this request.")
         return redirect("expenses:expense_detail", expense_id=pk)
@@ -386,7 +546,7 @@ def approve_expense_request(request, pk):
         messages.error(request, "You cannot approve your own expense request.")
         return redirect("expenses:expense_detail", expense_id=pk)
 
-    # Update status
+   
     expense.status = "Approved"
     expense.approved_by = request.user
     expense.approved_at = timezone.now()
@@ -394,8 +554,35 @@ def approve_expense_request(request, pk):
 
     expense.recalculate_total()
     expense.save()
+    log_action(request.user, "Approved Expense", expense, details=f"Expense '{expense.name}' approved")
+    
+    send_mail(
+    subject='Expense Request Approved',
 
-    # Log history
+    message=f'''
+    Hello {expense.user.fullname},
+
+    Your expense request has been approved.
+
+    Expense Title: {expense.name}
+    Amount: {expense.total_amount}
+    Status: {expense.status}
+
+    Approved By: {request.user.fullname}
+
+    Thank you.
+    Expense Management System
+    ''',
+
+    from_email=settings.EMAIL_HOST_USER,
+
+    recipient_list=[expense.user.email],
+
+    fail_silently=False,
+)
+
+
+   
     DepartmentExpenseRequestHistory.objects.create(
         expense_request=expense,
         department=expense.department,
@@ -403,11 +590,12 @@ def approve_expense_request(request, pk):
         action_taken_by=request.user
     )
 
-    # Notification.objects.create(user=expense.user, message= f"Your expense request has been approved!")
+   
     notify(expense.user, f"Your expense request '{expense.name}' has been approved.")
 
     messages.success(request, "Expense request approved.")
     return redirect("expenses:expense_detail", expense_id=pk)
+
 
 
 @login_required
@@ -426,11 +614,12 @@ def reject_expense_request(request, pk):
         messages.error(request, "You cannot reject your own expense request.")
         return redirect("expenses:expense_detail", expense_id=pk)
 
-    # Update status
+   
     expense.status = "Rejected"
     expense.rejected_by = request.user
     expense.rejected_at = timezone.now()
     expense.save()
+    log_action(request.user, " Expense Rejected", expense, details=f"Expense '{expense.name}' rejected")
 
     DepartmentExpenseRequestHistory.objects.create(
         expense_request=expense,
@@ -439,12 +628,38 @@ def reject_expense_request(request, pk):
         action_taken_by=request.user
     )
 
-    # Notification.objects.create(user=expense.user, message= f"Your expense request has been rejected!")
     notify(expense.user, f"Your expense request '{expense.name}' has been rejected.")
+
+    send_mail(
+    subject='Expense Request Rejected',
+
+    message=f'''
+    Hello {expense.user.fullname},
+
+    Your expense request has been rejected.
+
+    Expense Title: {expense.name}
+    Amount: {expense.total_amount}
+    Status: {expense.status}
+
+    Rejected By: {request.user.fullname}
+
+    Thank you.
+    Expense Management System
+    ''',
+
+    from_email=settings.EMAIL_HOST_USER,
+
+    recipient_list=[expense.user.email],
+
+    fail_silently=False,
+)
 
 
     messages.success(request, "Expense request rejected.")
     return redirect("expenses:expense_detail", expense_id=pk)
+
+
 
 @login_required
 def disburse_expense(request, pk):
@@ -459,7 +674,7 @@ def disburse_expense(request, pk):
         ref = request.POST.get("reference_number")
         notes = request.POST.get("notes")
 
-        # Create the disbursement record
+        
         disbursement=ExpenseDisbursement.objects.create(
             expense_request=expense,
             disbursed_by=request.user,
@@ -467,10 +682,10 @@ def disburse_expense(request, pk):
             reference_number=ref,
             notes=notes
         )
-
+        log_action(request.user, "Expense Disbursed", disbursement, details=f"Expense '{disbursement.expense_request}' disbursed")
         notify(expense.user, f"Your expense request '{expense.name}' has been disbursed.")
 
-        # Update expense status
+        
         expense.status = "Disbursed"
         expense.save()
 
@@ -478,7 +693,7 @@ def disburse_expense(request, pk):
         for file in files:
             ExpenseReceipt.objects.create(disbursement=disbursement, file=file)
 
-        # Update expense status
+        
         expense.status = "Disbursed"
         expense.save()
 
@@ -486,6 +701,7 @@ def disburse_expense(request, pk):
         return redirect("expenses:create_expense")
 
     return render(request, "disburse_expense.html", {"expense": expense})
+
 
 
 @login_required
@@ -500,18 +716,18 @@ def upload_receipt(request, pk):
     return redirect("expenses:expense_detail", expense_id=disbursement.expense_request.id)
 
 
-from django.shortcuts import render
-from .models import Notification
 
+@login_required
 def note(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-timestamp')
     return render(request, "notifications.html", {"notifications": notifications})
 
 
+
 @login_required
 def save_budget(request):
     if request.method == 'POST':
-        # Retrieve form data name = request.POST.get('name')
+       
         amount = request.POST.get('amount')
         start_date = request.POST.get('sdate')
         end_date = request.POST.get('edate')
@@ -519,12 +735,8 @@ def save_budget(request):
         id=request.POST.get('id')
         
        
-       
         department=Department.objects.get(code=department)
 
-        # Create the ExpenseRequest object
-
-    
         if id:
             existing_budget =DepartmentBudget.objects.get(id=id)
             existing_budget.budget_amount=amount
@@ -532,6 +744,7 @@ def save_budget(request):
             existing_budget.end_date=end_date
             existing_budget.department=department
             existing_budget.save()
+            log_action(request.user, "Budget Edited", existing_budget, details=f"Budget for '{existing_budget.department}' edited")
 
         else:
             budget = DepartmentBudget(
@@ -542,14 +755,12 @@ def save_budget(request):
                 department=department,
             )
             
-            # Save the expense request to the database
+           
             budget.save()
+            log_action(request.user, "Budget Saved", budget, details=f"Budget for '{budget.department}' saved")
             
             messages.success(request, 'Budget has been saved successfully and is awaiting approval.')
-            # return redirect('expense_list')  # Redirect to the list of expense requests or another appropriate page
-
-   
-   
+           
     context= {
        
         "department":Department.objects.all(),
@@ -559,141 +770,140 @@ def save_budget(request):
     
     return render(request, 'budget.html', context)
 
-from django.db.models import Sum, F, Value
-from django.db.models.functions import Coalesce
-from django.utils import timezone
 
+
+@login_required
 def department_budget_report(request):
+
     today = timezone.now().date()
+    total_budget = DepartmentBudget.objects.aggregate(total=Coalesce(
+        Sum(
+            'budget_amount',
+            output_field=DecimalField()
+        ),
+
+        Value(
+            0,
+            output_field=DecimalField()
+        )
+        ))['total']
+
+
+    total_spent = ExpenseRequest.objects.filter(
+
+        status__in=['Approved', 'Disbursed']
+
+    ).aggregate(
+
+        total=Coalesce(
+            Sum(
+                'total_amount',
+                output_field=DecimalField()
+            ),
+
+            Value(
+                0,
+                output_field=DecimalField()
+            )
+        )
+
+    )['total']
+
+    total_remaining = total_budget - total_spent
+
+
+
+
+
     budgets = DepartmentBudget.objects.filter(
         start_date__lte=today,
         end_date__gte=today
     ).select_related('department')
 
+    if request.user.role not in ['Admin', 'Finance', 'Head']:
+
+        budgets = budgets.filter(
+            department=request.user.department
+        )
+
     report = []
+
     for budget in budgets:
         spent = ExpenseRequest.objects.filter(
             department=budget.department,
-            status='Approved',   # only approved requests count
+            status__in=['Approved', 'Disbursed'],  
             date__gte=budget.start_date,
             date__lte=budget.end_date
         ).aggregate(total=Coalesce(Sum('total_amount',output_field=DecimalField()), Value(0, output_field=DecimalField())))['total']
 
         remaining = budget.budget_amount - spent
+        if budget.budget_amount > 0:
+
+            percentage_used = round(
+                (spent / budget.budget_amount) * 100,
+                1
+            )
+
+        else:
+
+            percentage_used = 0
 
         report.append({
             "department": budget.department.name,
             "budget": budget.budget_amount,
             "spent": spent,
             "remaining": remaining,
+            "percentage_used": percentage_used,
             "period": f"{budget.start_date} → {budget.end_date}"
         })
 
-    return render(request, "budget_report.html", {"report":report})
+    context = {
+
+    "report": report,
+
+    "total_budget": total_budget,
+
+    "total_spent": total_spent,
+
+    "total_remaining": total_remaining,
+
+}
+
+    return render(request, "budget_report.html", context)
 
 
 
-
+@login_required
 def create_notification(user, message):
     Notification.objects.create(user=user, message=message)
 
 
 
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
-
-
-from .models import *  # replace Expense with any model you want to track
-from django.contrib.contenttypes.models import ContentType
-
-@receiver(post_save, sender=ExpenseRequest)
-def log_expense_save(sender, instance, created, **kwargs):
-    action = "Created" if created else "Updated"
-    AuditLog.objects.create(
-        user=getattr(instance, "user", None),  # adjust if your model has a user field
-        action=action,
-        model_name=sender.__name__,
-        record_id=instance.pk,
-        details=f"Expense {action.lower()} with amount {instance.total_amount}"
-    )
-
-@receiver(post_delete, sender=ExpenseRequest)
-def log_expense_delete(sender, instance, **kwargs):
-    AuditLog.objects.create(
-        user=getattr(instance, "user", None),
-        action="Deleted",
-        model_name=sender.__name__,
-        record_id=instance.pk,
-        details=f"Expense deleted with amount {instance.total_amount}"
-    )
-
-def expensee(request):
-        if request.method == 'POST':
-        # Retrieve form data name = request.POST.get('name')
-            name = request.POST.get('name')
-            category=request.POST.get('category')
-            
-       
-       
-            category=ExpenseCategory.objects.get(id=category)
-
-        # Create the ExpenseRequest object
-            expenses = ExpenseRequest(
-            
-                name=name,
-                category=category,
-               
-            )
-            
-            # Save the expense request to the database
-            expenses.save()
-            
-            messages.success(request, 'Expense has been saved successfully .')
-            # return redirect('expense_list')  # Redirect to the list of expense requests or another appropriate page
-
-   
-   
-        context= {
-        
-            "department":Department.objects.all(),
-            "budgets":DepartmentBudget.objects.all(),
-
-        }
-        
-        return render(request, 'expense.html', context)
-
-
-
-
-
-
-
+@login_required
 def index(request):
     return render(request, "index.html")
 
 
-import subprocess
-import os
-from datetime import datetime
-from django.conf import settings
+
 
 DB_NAME = settings.DATABASES['default']['NAME']
 DB_USER = settings.DATABASES['default']['USER']
 BACKUP_FOLDER = "backups"
-# SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  # Use the custom socket path
+SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  
 
 os.makedirs(BACKUP_FOLDER, exist_ok=True)
 
+@login_required
 def backup_database(request):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_file = os.path.join(BACKUP_FOLDER, f"backup_{timestamp}.sql")
 
     try:
-        # Adjusted to omit the password
+       
         result = subprocess.run(
             [
                 "mysqldump",
-                "-u", DB_USER,  # No password argument here
+                "-u", DB_USER,  
                 "--socket", SOCKET_PATH, 
                 DB_NAME
             ],
@@ -709,17 +919,10 @@ def backup_database(request):
 
     except Exception as e:
         return JsonResponse({"message": f"Error: {str(e)}"}, status=500)
+    
 
-    # command = f"mysqldump -u {DB_USER} -p{DB_PASSWORD} {DB_NAME} > {backup_file}"
-    # result = os.system(command)
-
-    # if result == 0:
-    #     return JsonResponse({"message": "Backup successful", "file": backup_file})
-    # else:
-    #     return JsonResponse({"message": "Backup failed"}, status=500)
-
-
-
+    
+@login_required
 def restore_database(request):
     files = sorted(os.listdir(BACKUP_FOLDER), reverse=True)
 
@@ -728,7 +931,10 @@ def restore_database(request):
 
     latest_backup = os.path.join(BACKUP_FOLDER, files[0])
 
-    command = f"mysql -u {DB_USER} -p{DB_PASSWORD} {DB_NAME} < {latest_backup}"
+
+    command = f"mysql -u {DB_USER} --socket=/opt/lampp/var/mysql/mysql.sock {DB_NAME} < {latest_backup}"
+
+    # command = f"mysql -u {DB_USER}  {DB_NAME} < {latest_backup}"
     result = os.system(command)
 
     if result == 0:
@@ -737,16 +943,9 @@ def restore_database(request):
         return JsonResponse({"message": "Restore failed"}, status=500)
 
 
-from django.db.models import Sum
-from django.shortcuts import render
-from django.db.models import Q
-from datetime import date
 
+@login_required
 def expense_report_view(request):
-    """
-    Display expense requests in a table with filters: date range, department, category
-    """
-    # Get filter parameters from GET request
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
     department_id = request.GET.get("department")
@@ -754,23 +953,47 @@ def expense_report_view(request):
 
     expenses = ExpenseRequest.objects.select_related('department', 'category', 'user').all()
 
-    # Apply date filters
+   
     if start_date:
         expenses = expenses.filter(date__gte=start_date)
     if end_date:
         expenses = expenses.filter(date__lte=end_date)
 
-    # Apply department filter
+    
     if department_id and department_id != "all":
         expenses = expenses.filter(department_id=department_id)
 
-    # Apply category filter
+    
     if category_id and category_id != "all":
         expenses = expenses.filter(category_id=category_id)
 
-    # Pass departments and categories for filter dropdowns
+   
     departments = Department.objects.all()
     categories = ExpenseCategory.objects.all()
+    
+    approved_count = ExpenseRequest.objects.filter(
+    status__in=['Approved', 'Disbursed']        
+    ).count()
+
+    pending_count = expenses.filter(
+    status='Pending'
+    ).count()
+
+    total_amount = expenses.aggregate(
+
+    total=Coalesce(
+        Sum(
+            'total_amount',
+            output_field=DecimalField()
+        ),
+
+        Value(
+            0,
+            output_field=DecimalField()
+        )
+    )
+
+    )['total']
 
     context = {
         "expenses": expenses.order_by('-date'),
@@ -780,17 +1003,18 @@ def expense_report_view(request):
         "selected_category": category_id,
         "start_date": start_date,
         "end_date": end_date,
+        "approved_count": approved_count,
+        "pending_count": pending_count,
+        "total_amount": total_amount
     }
 
     return render(request, "expense_report.html", context)
 
 
-from django.shortcuts import render
-from django.db.models import Sum, Count
-from datetime import date
 
+@login_required
 def reports_dashboard(request):
-    # Filters
+    
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     department_id = request.GET.get('department')
@@ -817,26 +1041,25 @@ def reports_dashboard(request):
     if user_id and user_id != 'all':
         expenses = expenses.filter(user_id=user_id)
 
-    # Department Summary
     dept_summary = expenses.values('department__name').annotate(
         total_expense=Sum('total_amount'),
         pending_requests=Count('id', filter=Q(status='Pending')),
         approved_requests=Count('id', filter=Q(status='Approved'))
     )
 
-    # Category Summary
+   
     category_summary = expenses.values('category__name').annotate(
         total_expense=Sum('total_amount')
     )
 
-    # User Summary
+   
     user_summary = expenses.values('user__fullname').annotate(
         total_expense=Sum('total_amount'),
         pending_requests=Count('id', filter=Q(status='Pending')),
         approved_requests=Count('id', filter=Q(status='Approved'))
     )
 
-    # Departments, categories, users for dropdowns
+  
     departments = Department.objects.all()
     categories = ExpenseCategory.objects.all()
     users = CustomUser.objects.all()
@@ -857,3 +1080,77 @@ def reports_dashboard(request):
     }
 
     return render(request, "reports_dashboard.html", context)
+
+
+
+@login_required
+def audit_log_view(request):
+    logs = AuditLog.objects.select_related("user", "content_type").order_by("-timestamp")
+    return render(request, "audit_log.html", {"logs": logs})
+
+
+from django.db.models import Sum, Count
+from django.utils import timezone
+from datetime import timedelta
+
+
+from datetime import timedelta
+
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth
+from django.shortcuts import render
+from django.utils import timezone
+
+from .models import ExpenseRequest
+
+@login_required
+def dashboard(request):
+
+    expenses = ExpenseRequest.objects.all()
+
+    # ---------------- KPIs ----------------
+    total_expenses = expenses.aggregate(
+        total=Sum('total_amount')
+    )['total'] or 0
+
+    total_requests = expenses.count()
+
+    approved = expenses.filter(status="Approved").count()
+    pending = expenses.filter(status="Pending").count()
+    rejected = expenses.filter(status="Rejected").count()
+    disbursed = expenses.filter(status="Disbursed").count()
+
+    # ---------------- Department spending ----------------
+    dept_spending = (
+    expenses.filter(status__in=["Approved", "Disbursed"])
+    .values('department__name')
+    .annotate(total=Sum('total_amount'))
+    .order_by('-total')
+)
+
+    # ---------------- Monthly trend ----------------
+    today = timezone.now().date()
+    last_6_months = today - timedelta(days=180)
+
+    monthly = (
+        expenses.filter(date__gte=last_6_months)
+        .annotate(month=TruncMonth('date'))
+        .values('month')
+        .annotate(total=Sum('total_amount'))
+        .order_by('month')
+    )
+
+    context = {
+        "total_expenses": total_expenses,
+        "total_requests": total_requests,
+
+        "approved": approved,
+        "pending": pending,
+        "rejected": rejected,
+        "disbursed": disbursed,
+
+        "dept_spending": list(dept_spending),
+        "monthly": list(monthly),
+    }
+
+    return render(request, "dashboard.html", context)

@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+body{
+    background:#f4f7fb;
+}
+
+
+/* ================= DASHBOARD WRAPPER ================= */
+
+.dashboard-wrapper{
+    padding:40px 0 70px;
+}
+
+
+/* ================= HEADER ================= */
+
+.dashboard-header{
+    margin-bottom:35px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:20px;
+}
+
+.dashboard-title{
+    font-size:34px;
+    font-weight:700;
+    color:#111827;
+    margin-bottom:6px;
+}
+
+.dashboard-subtitle{
+    font-size:15px;
+    color:#6b7280;
+}
+
+.dashboard-date{
+    background:#fff;
+    padding:14px 20px;
+    border-radius:16px;
+    box-shadow:0 4px 18px rgba(0,0,0,0.06);
+    font-size:14px;
+    color:#374151;
+}
+
+
+/* ================= KPI CARDS ================= */
+
+.stat-card{
+    background:#fff;
+    border-radius:22px;
+    padding:26px;
+    position:relative;
+    overflow:hidden;
+    transition:0.3s ease;
+    box-shadow:0 8px 25px rgba(0,0,0,0.06);
+    height:100%;
+}
+
+.stat-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 18px 40px rgba(0,0,0,0.10);
+}
+
+.stat-card::before{
+    content:"";
+    position:absolute;
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    top:-25px;
+    right:-25px;
+    background:rgba(255,255,255,0.12);
+}
+
+.stat-icon{
+    width:58px;
+    height:58px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:18px;
+    font-size:24px;
+    color:#fff;
+}
+
+.stat-number{
+    font-size:30px;
+    font-weight:700;
+    color:#111827;
+    line-height:1;
+}
+
+.stat-label{
+    margin-top:8px;
+    color:#6b7280;
+    font-size:14px;
+    font-weight:500;
+}
+
+.bg-blue{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+}
+
+.bg-green{
+    background:linear-gradient(135deg,#10b981,#059669);
+}
+
+.bg-orange{
+    background:linear-gradient(135deg,#f59e0b,#d97706);
+}
+
+.bg-purple{
+    background:linear-gradient(135deg,#8b5cf6,#7c3aed);
+}
+
+
+/* ================= CHART CARDS ================= */
+
+.chart-card{
+    background:#fff;
+    border:none;
+    border-radius:24px;
+    padding:25px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.06);
+    height:100%;
+}
+
+.chart-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.chart-title{
+    font-size:18px;
+    font-weight:700;
+    color:#111827;
+    margin-bottom:4px;
+}
+
+.chart-subtitle{
+    font-size:13px;
+    color:#6b7280;
+}
+
+.chart-icon{
+    width:46px;
+    height:46px;
+    border-radius:14px;
+    background:#eff6ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    color:#2563eb;
+}
+
+
+/* ================= CANVAS ================= */
+
+.chart-container{
+    position:relative;
+    width:100%;
+}
+
+.small-chart{
+    height:320px;
+}
+
+.medium-chart{
+    height:350px;
+}
+
+.large-chart{
+    height:420px;
+}
+
+
+/* ================= RESPONSIVE ================= */
+
+@media(max-width:768px){
+
+    .dashboard-title{
+        font-size:28px;
+    }
+
+    .dashboard-header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .small-chart,
+    .medium-chart,
+    .large-chart{
+        height:300px;
+    }
+
+}
+
+</style>
+
+
+<section class="dashboard-wrapper">
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="dashboard-header">
+
+        <div>
+            <div class="dashboard-title">
+                Expense Analytics Dashboard
+            </div>
+
+            <div class="dashboard-subtitle">
+                Financial insights, expenditure tracking & department performance overview
+            </div>
+        </div>
+
+        <div class="dashboard-date">
+            <i class="bi bi-calendar-event me-2"></i>
+            {{ now|date:"l, d F Y" }}
+        </div>
+
+    </div>
+
+
+    <!-- KPI ROW -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+
+                <div class="stat-icon bg-blue">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+
+                <div class="stat-number">
+                    ${{ total_expenses }}
+                </div>
+
+                <div class="stat-label">
+                    Total Expenses
+                </div>
+
+            </div>
+        </div>
+
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+
+                <div class="stat-icon bg-green">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+
+                <div class="stat-number">
+                    {{ approved }}
+                </div>
+
+                <div class="stat-label">
+                    Approved Requests
+                </div>
+
+            </div>
+        </div>
+
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+
+                <div class="stat-icon bg-orange">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+
+                <div class="stat-number">
+                    {{ pending }}
+                </div>
+
+                <div class="stat-label">
+                    Pending Requests
+                </div>
+
+            </div>
+        </div>
+
+
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+
+                <div class="stat-icon bg-purple">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+
+                <div class="stat-number">
+                    {{ disbursed }}
+                </div>
+
+                <div class="stat-label">
+                    Disbursed Expenses
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- CHARTS -->
+    <div class="row g-4">
+
+        <!-- PIE -->
+        <div class="col-lg-4">
+
+            <div class="chart-card">
+
+                <div class="chart-header">
+
+                    <div>
+                        <div class="chart-title">
+                            Expense Status
+                        </div>
+
+                        <div class="chart-subtitle">
+                            Distribution of requests
+                        </div>
+                    </div>
+
+                    <div class="chart-icon">
+                        <i class="bi bi-pie-chart"></i>
+                    </div>
+
+                </div>
+
+                <div class="chart-container small-chart">
+                    <canvas id="statusChart"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- LINE -->
+        <div class="col-lg-8">
+
+            <div class="chart-card">
+
+                <div class="chart-header">
+
+                    <div>
+                        <div class="chart-title">
+                            Monthly Expense Trend
+                        </div>
+
+                        <div class="chart-subtitle">
+                            Expense activity over time
+                        </div>
+                    </div>
+
+                    <div class="chart-icon">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+
+                </div>
+
+                <div class="chart-container medium-chart">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- BAR -->
+        <div class="col-lg-12">
+
+            <div class="chart-card">
+
+                <div class="chart-header">
+
+                    <div>
+                        <div class="chart-title">
+                            Department Spending
+                        </div>
+
+                        <div class="chart-subtitle">
+                            Total expenditure by department
+                        </div>
+                    </div>
+
+                    <div class="chart-icon">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+
+                </div>
+
+                <div class="chart-container large-chart">
+                    <canvas id="deptChart"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+
+<!-- DATA -->
+{{ dept_spending|json_script:"dept-data" }}
+{{ monthly|json_script:"monthly-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const deptData = JSON.parse(document.getElementById("dept-data").textContent);
+const monthlyData = JSON.parse(document.getElementById("monthly-data").textContent);
+
+
+/* ================= PIE CHART ================= */
+
+new Chart(document.getElementById("statusChart"), {
+
+    type: 'doughnut',
+
+    data: {
+
+        labels: ["Approved", "Pending", "Rejected", "Disbursed"],
+
+        datasets: [{
+            data: [
+                {{ approved }},
+                {{ pending }},
+                {{ rejected }},
+                {{ disbursed }}
+            ],
+
+            backgroundColor: [
+                "#10b981",
+                "#f59e0b",
+                "#ef4444",
+                "#3b82f6"
+            ],
+
+            borderWidth:0,
+            hoverOffset:10
+        }]
+    },
+
+    options: {
+
+        responsive:true,
+        maintainAspectRatio:false,
+
+        plugins:{
+            legend:{
+                position:'bottom'
+            }
+        }
+    }
+
+});
+
+
+/* ================= LINE CHART ================= */
+
+new Chart(document.getElementById("monthlyChart"), {
+
+    type: 'line',
+
+    data: {
+
+        labels: monthlyData.map(x => x.month),
+
+        datasets: [{
+
+            label: "Monthly Expenses",
+
+            data: monthlyData.map(x => x.total),
+
+            borderColor:"#2563eb",
+            backgroundColor:"rgba(37,99,235,0.12)",
+
+            fill:true,
+            tension:0.4,
+            pointRadius:5,
+            pointHoverRadius:7
+        }]
+    },
+
+    options: {
+
+        responsive:true,
+        maintainAspectRatio:false,
+
+        plugins:{
+            legend:{
+                display:false
+            }
+        },
+
+        scales:{
+            y:{
+                beginAtZero:true
+            }
+        }
+    }
+
+});
+
+
+/* ================= BAR CHART ================= */
+
+new Chart(document.getElementById("deptChart"), {
+
+    type: 'bar',
+
+    data: {
+
+        labels: deptData.map(x => x.department__name),
+
+        datasets: [{
+
+            label: "Department Spending",
+
+            data: deptData.map(x => x.total),
+
+            backgroundColor:[
+                "#2563eb",
+                "#10b981",
+                "#f59e0b",
+                "#8b5cf6",
+                "#ef4444",
+                "#14b8a6",
+                "#ec4899"
+            ],
+
+            borderRadius:12,
+            borderSkipped:false
+        }]
+    },
+
+    options: {
+
+        responsive:true,
+        maintainAspectRatio:false,
+
+        plugins:{
+            legend:{
+                display:false
+            }
+        },
+
+        scales:{
+            y:{
+                beginAtZero:true
+            }
+        }
+    }
+
+});
+
+</script>
+
+{% endblock %}

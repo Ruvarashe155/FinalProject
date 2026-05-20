@@ -10,15 +10,10 @@ urlpatterns = [
     path('logout', auth_views.LogoutView.as_view(template_name='login.html'), name='logout'),
     path('home', views.home, name='home'),
 
-
-
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
-
-
-    
 
     path('cancel/<int:request_id>/', views.cancel_expense_request, name='cancel_request'),
     # path('save/', views.save_expense_request, name='save_expense'),
@@ -44,7 +39,14 @@ urlpatterns = [
     path('backup/', views.backup_database, name='backup'),
     path('restore/', views.restore_database, name='restore'),
     path('expense_report/', views.expense_report_view, name="expense_report"),
-    path('reports_dashboard/', views.reports_dashboard, name='reports_dashboard')
+    path('reports_dashboard/', views.reports_dashboard, name='reports_dashboard'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+
+    path('audit_log/', views.audit_log_view, name ="audit_log"),
+    path('download-template/', views.download_user_template, name='download_user_template'),
+    path('download_template/', views.download_department_template, name='download_department_template'),
+
+
 
 
 

@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+
+<style>
+
+.audit-header {
+    margin-bottom: 28px;
+}
+
+.audit-header h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #0f172a;
+}
+
+.audit-header p {
+    color: #64748b;
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+
+.audit-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+
+.audit-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    border: none;
+    background: #e2e8f0;
+    color: #334155;
+    padding: 8px 14px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background: #2563eb;
+    color: #fff;
+}
+
+
+.audit-card {
+    border-radius: 18px;
+    overflow: hidden;
+    background: #fff;
+}
+
+
+.audit-table {
+    border-collapse: separate;
+    border-spacing: 0 14px;
+    width: 100%;
+}
+
+
+.audit-table thead th {
+    background: transparent;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    padding: 0 16px 12px;
+    white-space: nowrap;
+}
+
+
+.audit-table tbody tr {
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.audit-table tbody tr:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px rgba(0,0,0,0.08);
+}
+
+
+.audit-table td {
+    padding: 16px;
+    border: none;
+    vertical-align: middle;
+    background: #fff;
+}
+
+
+.audit-table tbody tr td:first-child {
+    border-radius: 14px 0 0 14px;
+}
+
+.audit-table tbody tr td:last-child {
+    border-radius: 0 14px 14px 0;
+}
+
+
+.audit-badge {
+    padding: 7px 14px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+.bg-success-subtle {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.bg-warning-subtle {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.bg-danger-subtle {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.bg-primary-subtle {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.bg-secondary-subtle {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+
+.audit-user {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+
+.audit-details {
+    max-width: 340px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.audit-time {
+    color: #64748b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+
+.empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+.empty-state i {
+    opacity: 0.6;
+}
+
+
+.dataTables_wrapper .dataTables_filter input {
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    padding: 6px 12px;
+}
+
+.dataTables_wrapper .dataTables_length select {
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 8px !important;
+    margin: 0 2px;
+}
+
+</style>
+
+
+<div class="audit-header">
+
+    <h3>
+        <i class="fas fa-history text-primary me-2"></i>
+        Audit Log
+    </h3>
+
+    <p>
+        Monitor all user activities and system operations
+    </p>
+
+</div>
+
+
+<div class="audit-toolbar">
+
+    
+    <!-- <div class="audit-filters">
+
+        <button class="filter-btn active" data-filter="all">
+            All
+        </button>
+
+        <button class="filter-btn" data-filter="CREATE">
+            Create
+        </button>
+
+        <button class="filter-btn" data-filter="UPDATE">
+            Update
+        </button>
+
+        <button class="filter-btn" data-filter="DELETE">
+            Delete
+        </button>
+
+    </div> -->
+
+    
+    <div class="d-flex gap-2">
+
+        <button onclick="exportTableToExcel('example', 'audit-data')"
+                class="btn btn-success btn-sm">
+
+            <i class="fas fa-file-excel me-1"></i>
+            Export Excel
+        </button>
+
+        <button onclick="exportTableToPDF('example','audit-data')"
+                class="btn btn-danger btn-sm">
+
+            <i class="fas fa-file-pdf me-1"></i>
+            Export PDF
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="card border-0 shadow-sm audit-card">
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table audit-table" id="example">
+
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Record</th>
+                        <th>Details</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for log in logs %}
+
+                    <tr data-action="{{ log.action }}">
+
+                        
+                        <td class="audit-user">
+
+                            <i class="fas fa-user-circle text-secondary me-2"></i>
+
+                            {{ log.user }}
+
+                        </td>
+
+                        
+                        <td>
+
+                            {% if log.action == "CREATE" %}
+
+                                <span class="audit-badge bg-success-subtle">
+
+                                    <i class="fas fa-plus-circle"></i>
+                                    Create
+
+                                </span>
+
+                            {% elif log.action == "UPDATE" %}
+
+                                <span class="audit-badge bg-warning-subtle">
+
+                                    <i class="fas fa-pen"></i>
+                                    Update
+
+                                </span>
+
+                            {% elif log.action == "DELETE" %}
+
+                                <span class="audit-badge bg-danger-subtle">
+
+                                    <i class="fas fa-trash"></i>
+                                    Delete
+
+                                </span>
+
+                            {% elif log.action == "APPROVE" %}
+
+                                <span class="audit-badge bg-primary-subtle">
+
+                                    <i class="fas fa-check-circle"></i>
+                                    Approve
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="audit-badge bg-secondary-subtle">
+
+                                    {{ log.action }}
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        
+                        <td class="fw-semibold">
+                            {{ log.record }}
+                        </td>
+
+                        
+                        <td class="text-muted audit-details"
+                            title="{{ log.details }}">
+
+                            {{ log.details }}
+
+                        </td>
+
+                        
+                        <td class="audit-time">
+
+                            <i class="fas fa-clock me-1"></i>
+
+                            {{ log.timestamp|date:"M d, Y • H:i" }}
+
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+
+                        <td colspan="5">
+
+                            <div class="empty-state">
+
+                                <i class="fas fa-folder-open fa-3x mb-3"></i>
+
+                                <div class="fw-semibold fs-5">
+                                    No audit records found
+                                </div>
+
+                                <small>
+                                    System activity logs will appear here
+                                </small>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- <script>
+
+$(document).ready(function () {
+
+    let table = $('#example').DataTable({
+        pageLength: 10,
+        responsive: true,
+        autoWidth: false,
+        order: [[4, 'desc']]
+    });
+
+    
+    $('.filter-btn').click(function () {
+
+        $('.filter-btn').removeClass('active');
+        $(this).addClass('active');
+
+        let filter = $(this).data('filter');
+
+        if (filter === 'all') {
+            table.search('').draw();
+        } else {
+            table.column(1).search(filter).draw();
+        }
+
+    });
+
+});
+
+</script> -->
+
+{% endblock %}

@@ -2,95 +2,379 @@
 {% block title %}Budgets - GZU{% endblock %}
 
 {% block content %}
-<div class=" mt-4">
-    <h1 class="text-center mb-4">Budgets</h1>
-    <hr class="text-success">
 
-    <!-- Add Budget Form -->
-    <form method="POST" class="row g-3">
-        {% csrf_token %}
-        <input type="hidden" name="id" id="id" value="">
+<style>
 
-        <div class="col-md-3">
-            <label for="id_date" class="form-label">Start Date</label>
-            <input type="date" name="sdate" id="id_date" class="form-control" required>
-        </div>
+.page-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: #111827;
+}
 
-        <div class="col-md-3">
-            <label for="edate" class="form-label">End Date</label>
-            <input type="date" name="edate" id="edate" class="form-control" required>
-        </div>
+.page-subtitle {
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
 
-        <div class="col-md-3">
-            <label for="id_amount" class="form-label">Amount ($)</label>
-            <input type="number" step="0.01" min="0.00" name="amount" id="id_amount" class="form-control" placeholder="Enter budget amount" required>
-        </div>
 
-        <div class="col-md-3">
-            <label for="department" class="form-label">Department</label>
-            <select name="department" id="department" class="form-select" required>
-                <option disabled selected>- Select department -</option>
-                {% for dep in department %}
-                    <option value="{{dep.code}}">{{dep.name}}</option>
-                {% endfor %}
-            </select>
-        </div>
+.card-box {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+    margin-bottom: 24px;
+}
 
-        <div class="col-12 text-center mt-3">
-            <button type="submit" class="btn btn-primary me-2">Add Budget</button>
-            <button type="reset" class="btn btn-secondary">Reset/Cancel</button>
-        </div>
-    </form>
 
-    <hr class="text-success mt-4">
+.form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
 
-    <!-- Existing Budgets -->
-    <h2 class="text-center mb-4">Existing Budgets</h2>
-    <div class="mb-3 text-center">
-        <button onclick="exportTableToExcel('example', 'budget-data')" class="btn btn-outline-success me-2">
-            <i class="fas fa-file-excel"></i> Export to Excel
-        </button>
-        <button onclick="exportTableToPDF('budget-data')" class="btn btn-outline-danger">
-            <i class="fas fa-file-pdf"></i> Export to PDF
-        </button>
+.form-control,
+.form-select {
+    border-radius: 10px;
+    font-size: 14px;
+    padding: 10px;
+}
+
+.input-group-text {
+    border-radius: 10px 0 0 10px;
+}
+
+
+.btn {
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+.budget-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+}
+
+.budget-table thead {
+    background: #f8fafc;
+}
+
+.budget-table th {
+    padding: 14px;
+    font-size: 13px;
+    color: #475569;
+    font-weight: 600;
+}
+
+.budget-table td {
+    padding: 14px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.budget-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+
+.progress {
+    height: 8px;
+    border-radius: 20px;
+    background: #e2e8f0;
+}
+
+.progress-bar {
+    border-radius: 20px;
+}
+
+
+.badge {
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+}
+
+
+.btn-sm {
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+</style>
+
+
+<div>
+    <div class="page-title">
+        Budget Management
     </div>
 
-    <table class="table table-hover table-bordered datatable" id="example">
-        <thead class="table-dark">
-            <tr>
-                <th>Department</th>
-                <th>Amount ($)</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th class="text-center">Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for bud in budgets %}
-            <tr>
-                <td>{{ bud.department.name }}</td>
-                <td>{{ bud.budget_amount }}</td>
-                <td>{{ bud.start_date }}</td>
-                <td>{{ bud.end_date }}</td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-primary"
-                        onclick="populateBudInfo('{{bud.id}}','{{ bud.department.code|safe }}','{{ bud.budget_amount }}','{{ bud.start_date|date:"Y-m-d"}}','{{bud.end_date|date:"Y-m-d"}}')">
-                        Edit
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="page-subtitle">
+        Manage department budgets and monitor spending
+    </div>
 </div>
 
+
+
+<div class="card-box">
+
+    <form method="POST" class="row g-3">
+
+        {% csrf_token %}
+
+        <input type="hidden" name="id" id="id" value="">
+
+
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label">Start Date</label>
+
+            <input type="date"
+                   name="sdate"
+                   id="id_date"
+                   class="form-control"
+                   required>
+        </div>
+
+
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label">End Date</label>
+
+            <input type="date"
+                   name="edate"
+                   id="edate"
+                   class="form-control"
+                   required>
+        </div>
+
+
+        <div class="col-lg-3 col-md-6">
+
+            <label class="form-label">Budget Amount</label>
+
+            <div class="input-group">
+
+                <span class="input-group-text">$</span>
+
+                <input type="number"
+                       step="0.01"
+                       name="amount"
+                       id="id_amount"
+                       class="form-control"
+                       placeholder="0.00"
+                       required>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-lg-3 col-md-6">
+
+            <label class="form-label">Department</label>
+
+            <select name="department"
+                    id="department"
+                    class="form-select"
+                    required>
+
+                <option disabled selected>
+                    Select department
+                </option>
+
+                {% for dep in department %}
+                    <option value="{{dep.code}}">
+                        {{dep.name}}
+                    </option>
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+
+            <button type="submit"
+                    class="btn btn-primary px-4">
+
+                <i class="fas fa-save me-1"></i>
+                Save Budget
+
+            </button>
+
+            <button type="reset"
+                    class="btn btn-secondary px-4">
+                    <i class="fas fa-rotate-left me-2"></i>
+
+                Reset
+
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+
+<div class="card-box">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <h5 class="mb-0">
+            Existing Budgets
+        </h5>
+
+        <div>
+
+            <button onclick="exportTableToExcel('example', 'budget-data')"
+                    class="btn btn-success btn-sm">
+
+                <i class="fas fa-file-excel me-1"></i>
+                Export Excel
+
+            </button>
+
+            <button onclick="exportTableToPDF('example','budget-data')"
+                    class="btn btn-danger btn-sm">
+
+                <i class="fas fa-file-pdf me-1"></i>
+                Export PDF
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-responsive">
+
+        <table class="table budget-table datatable" id="example">
+
+            <thead>
+
+                <tr>
+
+                    <th>Department</th>
+                    <th>Budget</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th class="text-center">Action</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for bud in budgets %}
+
+                <tr>
+
+                    <td class="fw-semibold">
+                        {{ bud.department.name }}
+                    </td>
+
+
+                    <td>
+                        ${{ bud.budget_amount }}
+                    </td>
+
+
+
+                    <td>
+                        {{ bud.start_date }}
+                    </td>
+
+
+                    <td>
+                        {{ bud.end_date }}
+                    </td>
+
+
+                    <td>
+
+                        {% if bud.remaining_amount <= 0 %}
+
+                            <span class="badge bg-danger">
+                                Exhausted
+                            </span>
+
+                        {% elif bud.remaining_amount < bud.budget_amount %}
+
+                            <span class="badge bg-warning text-dark">
+                                Active
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-success">
+                                Available
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td class="text-center">
+
+                        <button type="button"
+                                class="btn btn-outline-primary btn-sm"
+
+                                onclick="populateBudInfo(
+                                    '{{bud.id}}',
+                                    '{{bud.department.code}}',
+                                    '{{bud.budget_amount}}',
+                                    '{{bud.start_date|date:"Y-m-d"}}',
+                                    '{{bud.end_date|date:"Y-m-d"}}'
+                                )">
+
+                            <i class="fas fa-edit"></i>
+                            Edit
+
+                        </button>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
 <script>
-    function populateBudInfo(id, department, amount, start_date, end_date) {
-        document.getElementById("id").value = id;
-        document.getElementById("department").value = department;
-        document.getElementById("id_amount").value = amount;
-        document.getElementById("id_date").value = start_date;
-        document.getElementById("edate").value = end_date;
-    }
+
+function populateBudInfo(id, department, amount, start_date, end_date) {
+
+    document.getElementById("id").value = id;
+
+    document.getElementById("department").value = department;
+
+    document.getElementById("id_amount").value = amount;
+
+    document.getElementById("id_date").value = start_date;
+
+    document.getElementById("edate").value = end_date;
+
+}
+
 </script>
+
 {% endblock %}

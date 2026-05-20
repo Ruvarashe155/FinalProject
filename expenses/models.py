@@ -161,12 +161,12 @@ class Notification(models.Model):
 
 
     def mark_as_read(self):
-        self.is_read = True
+        self.read = True
         self.save()
 
 
     def mark_as_unread(self):
-        self.is_read = True
+        self.read = False
         self.save()
 
     def __str__(self):
@@ -205,6 +205,9 @@ class ExpenseRequest(models.Model):
     # Date and timestamp for approval/rejection
     approved_at = models.DateTimeField(null=True, blank=True)
     rejected_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 
 
     def recalculate_total(self): 

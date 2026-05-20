@@ -4,163 +4,642 @@
 
 {% block content %}
 
-{% if user.role == "Staff" or user.role == "Head" %}
-<div class="">
-    <h1 class="text-center mb-4">Create Expense Request</h1>
-    <hr class="text-success">
+<style>
 
-    <form method="POST">
-        {% csrf_token %}
+.page-header{
+    margin-bottom:24px;
+}
 
-        <!-- Expense Request Details -->
-        <h3>Expense Request Details</h3>
-        <h2 class="text-end text-primary fw-bold">
-            Total Amount: <span id="totalAmount">0.00</span>
-        </h2>
-        <input type="hidden" name="total_amount" id="totalAmountInput">
+.page-title{
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:4px;
+    color:#111827;
+}
 
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <label class="form-label">Date:</label>
-                <input type="date" name="date" class="form-control" required>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Expense Name:</label>
-                <input type="text" name="name" class="form-control" required>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Description:</label>
-                <input type="text" name="description" class="form-control" required>
-            </div>
-        </div>
+.page-subtitle{
+    font-size:14px;
+    color:#6b7280;
+    margin-bottom:0;
+}
 
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <label class="form-label">Category:</label>
-                <select name="category" id="id_category" class="form-select" required>
-                    <option disabled selected>Select category</option>
-                    {% for cat in categories %}
-                        <option value="{{cat.id}}">{{cat.name}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">User:</label>
-                <input name="user" id="user" class="form-control" required readonly value="{{request.user}}">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Department:</label>
-                <input name="department" id="department" class="form-control" required readonly value="{{request.user.department}}">
-            </div>
-        </div>
 
-        <hr class="text-success mt-4">
+.card-box{
+    background:#fff;
+    border:none;
+    border-radius:16px;
+    padding:24px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.06);
+    margin-bottom:24px;
+}
+@media (max-width:768px){
 
-        <!-- Expense Items -->
-        <h3>Expense Items</h3>
-        <table id="itemTable" class="table table-bordered table-striped">
-            <thead class="table-light">
-                <tr>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="itemsBody"></tbody>
-        </table>
+    .total-box{
+        text-align:left;
+        font-size:18px;
+    }
 
-        <button type="button" onclick="addItem()" class="btn btn-primary mb-3">Add Item</button>
+    .page-title{
+        font-size:20px;
+    }
 
-        <div class="text-center">
-            <button type="submit" class="btn btn-success me-2">Submit Expense Request</button>
-            <button type="reset" class="btn btn-secondary">Reset/Cancel</button>
-        </div>
-    </form>
+}
+
+
+.section-title{
+    font-size:16px;
+    font-weight:600;
+    color:#111827;
+    margin-bottom:18px;
+}
+
+
+.total-box{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:#fff;
+    padding:16px 20px;
+    border-radius:14px;
+    text-align:right;
+    font-size:20px;
+    font-weight:700;
+    margin-bottom:24px;
+    box-shadow:0 6px 18px rgba(37,99,235,0.2);
+}
+
+
+.form-label{
+    font-size:13px;
+    font-weight:600;
+    color:#475569;
+    margin-bottom:6px;
+}
+
+.form-control,
+.form-select{
+    border-radius:10px;
+    min-height:44px;
+    border:1px solid #dbe3ee;
+    font-size:14px;
+    box-shadow:none !important;
+}
+
+.form-control:focus,
+.form-select:focus{
+    border-color:#2563eb;
+}
+
+
+.items-table{
+    width:100%;
+    font-size:14px;
+    border-collapse:separate;
+    border-spacing:0 10px;
+}
+
+.items-table thead th{
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:600;
+    border:none;
+    padding:12px;
+}
+
+.items-table tbody tr{
+    background:#fff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.04);
+}
+
+.items-table tbody td{
+    padding:12px;
+    border:none;
+    vertical-align:middle;
+}
+
+.items-table tbody tr td:first-child{
+    border-radius:12px 0 0 12px;
+}
+
+.items-table tbody tr td:last-child{
+    border-radius:0 12px 12px 0;
+}
+
+
+.btn{
+    border-radius:10px;
+    font-size:14px;
+    font-weight:600;
+    padding:10px 16px;
+}
+
+.btn-sm{
+    font-size:12px;
+    padding:6px 12px;
+}
+
+.btn-primary{
+    background:#2563eb;
+    border:none;
+}
+
+.btn-primary:hover{
+    background:#1d4ed8;
+}
+
+.btn-success{
+    border:none;
+}
+
+.btn-danger{
+    border:none;
+}
+
+.table-card{
+    background:#fff;
+    border:none;
+    border-radius:16px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.06);
+    margin-bottom:24px;
+    padding:0;
+    overflow:hidden;
+    width:100%;
+    max-width:100%;
+}
+
+.table-responsive{
+    width:100%;
+    overflow-x:auto;
+}
+
+#expenseTable{
+    width:100% !important;
+}
+
+.dataTables_wrapper{
+    padding:0;
+    width:100%;
+}
+
+.dataTables_wrapper .row{
+    margin:0;
+}
+
+
+.expense-table{
+    width:100%;
+    font-size:14px;
+}
+
+.expense-table thead{
+    background:#f8fafc;
+}
+
+.expense-table thead th{
+    padding:14px;
+    font-size:13px;
+    font-weight:600;
+    color:#475569;
+    border:none;
+    white-space:nowrap;
+}
+
+.expense-table tbody td{
+    padding:14px;
+    vertical-align:middle;
+    border-top:1px solid #eef2f7;
+}
+
+.expense-table tbody tr:hover{
+    background:#f8fafc;
+}
+
+
+.status-badge{
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:600;
+    display:inline-block;
+}
+
+.status-pending{
+    background:#fef3c7;
+    color:#92400e;
+}
+
+.status-approved{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.status-rejected{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.status-disbursed{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select{
+    border-radius:8px;
+    border:1px solid #d1d5db;
+    padding:6px 10px;
+    margin-bottom:10px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button{
+    border-radius:8px !important;
+}
+
+</style>
+
+
+<div class="page-header">
+    <div class="page-title">Create Expense Request</div>
+    <div class="page-subtitle">
+        Submit and manage department expense requests
+    </div>
 </div>
-{% endif %}
 
-<hr class="text-success mt-4">
 
-<!-- Existing Expenses -->
-<div class="container">
-    <h2 class="text-center mb-4">Existing Expenses</h2>
-    <div class="mb-3">
-        <button onclick="exportTableToExcel('example', 'requests-data')" class="btn btn-outline-success me-2">
-            <i class="fas fa-file-excel"></i> Export to Excel
-        </button>
-        <button onclick="exportTableToPDF('requests-data')" class="btn btn-outline-danger">
-            <i class="fas fa-file-pdf"></i> Export to PDF
+<form method="POST">
+{% csrf_token %}
+
+<div class="card-box">
+
+    <div class="section-title">Expense Details</div>
+
+    <div class="total-box">
+        Total Amount: $<span id="totalAmount">0.00</span>
+        <input type="hidden" name="total_amount" id="totalAmountInput">
+    </div>
+
+    <div class="row g-3">
+
+        <div class="col-md-4">
+            <label class="form-label">Date</label>
+            <input type="date" name="date" class="form-control" required>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Expense Name</label>
+            <input type="text" name="name" class="form-control"
+                   placeholder="Enter expense name" required>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" class="form-control"
+                   placeholder="Enter description" required>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Category</label>
+            <select name="category" id="id_category"
+                    class="form-select" required>
+
+                <option disabled selected>Select category</option>
+
+                {% for cat in categories %}
+                    <option value="{{cat.id}}">
+                        {{cat.name}}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">User</label>
+            <input name="user"
+                   class="form-control"
+                   readonly
+                   value="{{request.user}}">
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Department</label>
+            <input name="department"
+                   class="form-control"
+                   readonly
+                   value="{{request.user.department}}">
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card-box">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="section-title mb-0">Expense Items</div>
+
+        <button type="button"
+                onclick="addItem()"
+                class="btn btn-primary btn-sm">
+            + Add Item
         </button>
     </div>
 
-    <table id="example" class="table table-hover datatable">
-        <thead class="table-dark">
-            <tr>
-                <th>Date</th>
-                <th>Expense Name</th>
-                <th>User</th>
-                <th>Department</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for expense_request in expenses %}
-            <tr>
-                <td>{{ expense_request.date }}</td>
-                <td>{{ expense_request.name }}</td>
-                <td>{{ expense_request.user.fullname }}</td>
-                <td>{{ expense_request.department }}</td>
-                <td>{{ expense_request.category }}</td>
-                <td>{{ expense_request.total_amount }}</td>
-                <td>{{ expense_request.status }}</td>
-                <td>
-                    <a href="{% url 'expenses:expense_detail' expense_request.id %}" class="btn btn-info btn-sm">View</a>
-                    {% if expense_request.status == "Approved" and user.role == "finance" %}
-                        <a href="{% url 'expenses:disburse_expense' expense_request.id %}" class="btn btn-primary btn-sm">Disburse</a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+
+        <table class="items-table">
+
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th width="180">Amount ($)</th>
+                    <th width="120">Action</th>
+                </tr>
+            </thead>
+
+            <tbody id="itemsBody"></tbody>
+
+        </table>
+
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>
+            Submit Request
+        </button>
+
+        <button type="reset" class="btn btn-secondary">
+             <i class="fas fa-rotate-left me-2"></i>
+            Reset
+        </button>
+    </div>
+
 </div>
 
-<!-- JavaScript -->
+</form>
+
+
+<div class="card-box">
+
+    <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+
+        <h5 class="mb-0 fw-semibold">Existing Expense Requests</h5>
+
+        <div class="d-flex gap-2">
+
+            <button onclick="exportTableToExcel('expenseTable', 'requests-data')"
+                    class="btn btn-success btn-sm">
+                Export Excel
+            </button>
+
+            <button onclick="exportTableToPDF('expenseTable','requests-data')"
+                    class="btn btn-danger btn-sm">
+                Export PDF
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="table-responsive">
+
+        <table id="expenseTable" class="table expense-table mb-0">
+
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Expense</th>
+                    <th>User</th>
+                    <th>Department</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for expense_request in expenses %}
+
+                <tr>
+
+                    <td>{{ expense_request.date }}</td>
+
+                    <td class="fw-semibold">
+                        {{ expense_request.name }}
+                    </td>
+
+                    <td>{{ expense_request.user.fullname }}</td>
+
+                    <td>{{ expense_request.department }}</td>
+
+                    <td>{{ expense_request.category }}</td>
+
+                    <td>
+                        ${{ expense_request.total_amount }}
+                    </td>
+
+                    <td>
+
+                        {% if expense_request.status == "Pending" %}
+
+                            <span class="status-badge status-pending">
+                                Pending
+                            </span>
+
+                        {% elif expense_request.status == "Approved" %}
+
+                            <span class="status-badge status-approved">
+                                Approved
+                            </span>
+
+                        {% elif expense_request.status == "Rejected" %}
+
+                            <span class="status-badge status-rejected">
+                                Rejected
+                            </span>
+
+                        {% elif expense_request.status == "Disbursed" %}
+
+                            <span class="status-badge status-disbursed">
+                                Disbursed
+                            </span>
+
+                        {% else %}
+
+                            <span class="status-badge">
+                                {{ expense_request.status }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td class="text-center">
+
+                        <a href="{% url 'expenses:expense_detail' expense_request.id %}"
+                           class="btn btn-info btn-sm">
+                            View
+                        </a>
+
+                        {% if expense_request.status == "Approved" and user.role == "Finance" %}
+
+                        <a href="{% url 'expenses:disburse_expense' expense_request.id %}"
+                           class="btn btn-primary btn-sm">
+                            Disburse
+                        </a>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
 <script>
-    let itemIndex = 0;
 
-    function addItem() {
-        const tableBody = document.getElementById("itemsBody");
-        const row = document.createElement("tr");
-        row.setAttribute("id", `item-${itemIndex}`);
+let itemIndex = 0;
 
-        row.innerHTML = `
-            <td><input type="text" name="items[${itemIndex}][description]" class="form-control" required></td>
-            <td><input type="number" step="0.01" min="0" name="items[${itemIndex}][amount]" class="form-control" oninput="calculateTotal()" required></td>
-            <td><button type="button" onclick="removeItem(${itemIndex})" class="btn btn-danger btn-sm">Delete</button></td>
-        `;
 
-        tableBody.appendChild(row);
-        itemIndex++;
+// ADD ITEM ROW
+function addItem() {
+
+    const tableBody = document.getElementById("itemsBody");
+
+    const row = document.createElement("tr");
+
+    row.id = `item-${itemIndex}`;
+
+    row.innerHTML = `
+        <td>
+            <input type="text"
+                   name="items[${itemIndex}][description]"
+                   class="form-control"
+                   placeholder="Enter item description"
+                   required>
+        </td>
+
+        <td>
+            <input type="number"
+                   step="0.01"
+                   min="0"
+                   name="items[${itemIndex}][amount]"
+                   class="form-control"
+                   placeholder="0.00"
+                   oninput="calculateTotal()"
+                   required>
+        </td>
+
+        <td>
+            <button type="button"
+                    onclick="removeItem(${itemIndex})"
+                    class="btn btn-danger btn-sm">
+                Remove
+            </button>
+        </td>
+    `;
+
+    tableBody.appendChild(row);
+
+    itemIndex++;
+}
+
+
+// REMOVE ITEM ROW
+function removeItem(index) {
+
+    const row = document.getElementById(`item-${index}`);
+
+    if (row) {
+        row.remove();
     }
 
-    function removeItem(index) {
-        document.getElementById(`item-${index}`).remove();
-        calculateTotal();
-    }
+    calculateTotal();
+}
 
-    function calculateTotal() {
-        let total = 0.0;
-        const amounts = document.querySelectorAll("input[name*='[amount]']");
-        amounts.forEach(input => {
-            total += parseFloat(input.value) || 0;
+
+// CALCULATE TOTAL
+function calculateTotal() {
+
+    let total = 0;
+
+    document.querySelectorAll("input[name*='[amount]']").forEach(input => {
+
+        const value = parseFloat(input.value);
+
+        total += isNaN(value) ? 0 : value;
+
+    });
+
+    // DISPLAY FORMATTED TOTAL
+    document.getElementById("totalAmount").innerText =
+        total.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
-        document.getElementById("totalAmount").innerText = total.toFixed(2);
-        document.getElementById("totalAmountInput").value = total.toFixed(2);
+
+    // STORE RAW TOTAL
+    document.getElementById("totalAmountInput").value =
+        total.toFixed(2);
+}
+
+
+// RESET FORM FUNCTIONALITY
+document.querySelector("form").addEventListener("reset", function () {
+
+    setTimeout(() => {
+
+        // CLEAR ALL ITEMS
+        document.getElementById("itemsBody").innerHTML = "";
+
+        // RESET TOTAL DISPLAY
+        document.getElementById("totalAmount").innerText = "0.00";
+
+        // RESET HIDDEN INPUT
+        document.getElementById("totalAmountInput").value = "0.00";
+
+        // ADD ONE EMPTY ROW
+        addItem();
+
+    }, 0);
+
+});
+
+
+// DATATABLE INITIALIZATION
+$(document).ready(function () {
+
+    // ADD INITIAL ITEM ROW
+    addItem();
+
+    // DESTROY EXISTING DATATABLE
+    if ($.fn.DataTable.isDataTable('#expenseTable')) {
+
+        $('#expenseTable').DataTable().destroy();
+
     }
+
+    // INITIALIZE DATATABLE
+    $('#expenseTable').DataTable({
+        responsive: true,
+        pageLength: 10,
+        autoWidth: false,
+        order: [[0, 'desc']]
+    });
+
+});
 </script>
 
 {% endblock %}

@@ -1,26 +1,347 @@
+
 {% extends "base.html" %}
 {% block title %}Notifications - GZU{% endblock %}
 
 {% block content %}
-<div class=" mt-4">
-    <h3 class="mb-3">Notifications</h3>
 
-    <ul class="list-group">
+<style>
+
+.notifications-wrapper {
+    max-width: 950px;
+    margin: 35px auto;
+}
+
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.page-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.page-subtitle {
+    color: #64748b;
+    font-size: 14px;
+}
+
+
+.notification-actions {
+    display: flex;
+    gap: 10px;
+}
+
+
+.notification-card {
+    border-radius: 18px;
+    overflow: hidden;
+    border: none;
+    background: #ffffff;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+}
+
+
+.notification-item {
+    padding: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    position: relative;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+
+.notification-item:hover {
+    background: #f8fafc;
+    transform: translateX(2px);
+}
+
+
+.unread {
+    background: #fffaf0;
+}
+
+
+.unread::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 18px;
+    bottom: 18px;
+    width: 4px;
+    background: #f59e0b;
+    border-radius: 4px;
+}
+
+
+.notification-left {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+}
+
+
+.notification-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+
+.icon-warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.icon-success {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.icon-info {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+
+.message-text {
+    font-size: 14px;
+    color: #0f172a;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+
+.timestamp {
+    font-size: 12px;
+    color: #64748b;
+}
+
+
+.notification-right {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    gap: 10px;
+}
+
+
+.btn-mark {
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px;
+}
+
+
+.read-badge {
+    border-radius: 30px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+.empty-state {
+    padding: 70px 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+.empty-state i {
+    opacity: 0.5;
+    margin-bottom: 15px;
+}
+
+
+.notification-counter {
+    background: #2563eb;
+    color: #fff;
+    border-radius: 30px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+@media(max-width: 768px) {
+
+    .notification-item {
+        flex-direction: column;
+    }
+
+    .notification-right {
+        width: 100%;
+        align-items: start;
+    }
+
+}
+
+</style>
+
+
+<div class="notifications-wrapper">
+
+    
+    <div class="notifications-header">
+
+        <div>
+
+            <div class="page-title">
+
+                <i class="fas fa-bell text-primary me-2"></i>
+                Notifications
+
+            </div>
+
+            <div class="page-subtitle">
+
+                System alerts, approvals, and financial activity updates
+
+            </div>
+
+        </div>
+
+        
+        <div class="notification-actions">
+
+            <div class="notification-counter">
+
+                {{ notifications|length }} Notifications
+
+            </div>
+
+        </div>
+
+    </div>
+
+    
+    <div class="card notification-card">
+
         {% for note in notifications %}
-            <li class="list-group-item d-flex justify-content-between align-items-center 
-                       {% if not note.read %} list-group-item-warning fw-bold {% endif %}">
-                <div>
-                    {{ note.message }}
-                    <small class="text-muted">({{ note.timestamp|date:"Y-m-d H:i" }})</small>
+
+            <div class="notification-item {% if not note.read %}unread{% endif %}">
+
+                
+                <div class="notification-left">
+
+                    
+                    <div class="notification-icon
+                        {% if 'approved' in note.message|lower %}
+                            icon-success
+                        {% elif 'rejected' in note.message|lower %}
+                            icon-warning
+                        {% else %}
+                            icon-info
+                        {% endif %}
+                    ">
+
+                        {% if 'approved' in note.message|lower %}
+
+                            <i class="fas fa-check-circle"></i>
+
+                        {% elif 'rejected' in note.message|lower %}
+
+                            <i class="fas fa-times-circle"></i>
+
+                        {% else %}
+
+                            <i class="fas fa-info-circle"></i>
+
+                        {% endif %}
+
+                    </div>
+
+                    
+                    <div>
+
+                        <div class="message-text">
+
+                            {{ note.message }}
+
+                        </div>
+
+                        <div class="timestamp">
+
+                            <i class="fas fa-clock me-1"></i>
+
+                            {{ note.timestamp|date:"M d, Y • H:i" }}
+
+                        </div>
+
+                    </div>
+
                 </div>
-                {% if not note.read %}
-                    <a href="{% url 'expenses:mark_notification_read' note.id %}" 
-                       class="btn btn-sm btn-outline-primary">Mark as read</a>
-                {% endif %}
-            </li>
+
+                
+                <div class="notification-right">
+
+                    {% if not note.read %}
+
+                        <a href="{% url 'expenses:mark_notification_read' note.id %}"
+                           class="btn btn-outline-primary btn-sm btn-mark">
+
+                            <i class="fas fa-check me-1"></i>
+                            Mark as Read
+
+                        </a>
+
+                    {% else %}
+
+                        <span class="badge bg-light text-secondary read-badge">
+
+                            <i class="fas fa-check-circle me-1"></i>
+                            Read
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
         {% empty %}
-            <li class="list-group-item text-center text-muted">No notifications</li>
+
+            <div class="empty-state">
+
+                <i class="fas fa-bell-slash fa-3x"></i>
+
+                <div class="fw-semibold fs-5">
+                    No Notifications
+                </div>
+
+                <small>
+                    You're all caught up for now
+                </small>
+
+            </div>
+
         {% endfor %}
-    </ul>
+
+    </div>
+
 </div>
+
 {% endblock %}
+```

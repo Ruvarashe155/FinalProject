@@ -1,68 +1,487 @@
+
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Expense Management Backup{% endblock %}
+{% block title %}System Backup{% endblock %}
 
 {% block content %}
-<div class=" mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-lg">
-                <div class="card-body">
-                    <h2 class="text-center mb-4">Expense Management Backup</h2>
-                    <p class="text-center">Manage your backups easily by clicking the buttons below.</p>
 
-                    <!-- Backup Button -->
-                    <div class="d-grid mb-3">
-                        <button onclick="backup()" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i> Backup
-                        </button>
-                    </div>
+<style>
 
-                    <!-- Restore Button -->
-                    <div class="d-grid">
-                        <button onclick="restore()" class="btn btn-danger">
-                            <i class="fas fa-undo-alt me-2"></i> Recover
-                        </button>
-                    </div>
+.backup-wrapper {
+    max-width: 850px;
+    margin: 40px auto;
+}
 
-                    <!-- Feedback Message -->
-                    <div id="message" class="mt-4 text-center"></div>
-                </div>
-            </div>
+
+.page-header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.page-title {
+    font-size: 30px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.page-subtitle {
+    color: #64748b;
+    font-size: 15px;
+}
+
+
+.control-card {
+    border: none;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+}
+
+
+.card-top {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #fff;
+    padding: 35px 30px;
+    text-align: center;
+}
+
+.card-top i {
+    font-size: 42px;
+    margin-bottom: 15px;
+}
+
+.card-top h4 {
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.card-top p {
+    opacity: 0.8;
+    margin: 0;
+}
+
+
+.card-body-custom {
+    padding: 35px;
+}
+
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+
+.action-box {
+    border-radius: 18px;
+    padding: 28px 24px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-box:hover {
+    transform: translateY(-4px);
+}
+
+
+.backup-box {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+}
+
+.restore-box {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+}
+
+
+.action-icon {
+    width: 65px;
+    height: 65px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 18px;
+}
+
+.backup-box .action-icon {
+    background: #2563eb;
+    color: #fff;
+}
+
+.restore-box .action-icon {
+    background: #dc2626;
+    color: #fff;
+}
+
+
+.action-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.action-text {
+    font-size: 14px;
+    color: #475569;
+    margin-bottom: 22px;
+    line-height: 1.6;
+}
+
+
+.btn-action {
+    width: 100%;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+}
+
+
+.btn-backup {
+    background: #2563eb;
+    color: #fff;
+}
+
+.btn-restore {
+    background: #dc2626;
+    color: #fff;
+}
+
+
+.system-info {
+    margin-top: 30px;
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.system-info h6 {
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #22c55e;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+
+#message {
+    margin-top: 25px;
+}
+
+
+.loading-spinner {
+    display: none;
+    margin-top: 20px;
+    text-align: center;
+}
+
+</style>
+
+
+<div class="backup-wrapper">
+
+    
+    <div class="page-header">
+
+        <div class="page-title">
+            <i class="fas fa-database text-primary me-2"></i>
+            Backup & Recovery Center
         </div>
+
+        <div class="page-subtitle">
+            Protect and restore institutional financial records securely
+        </div>
+
     </div>
+
+    
+    <div class="card control-card">
+
+        
+        <div class="card-top">
+
+            <i class="fas fa-shield-alt"></i>
+
+            <h4>
+                System Protection Console
+            </h4>
+
+            <p>
+                Manage backups and restore system data safely
+            </p>
+
+        </div>
+
+        
+        <div class="card-body-custom">
+
+            
+            <div class="action-grid">
+
+                
+                <div class="action-box backup-box">
+
+                    <div class="action-icon">
+                        <i class="fas fa-download"></i>
+                    </div>
+
+                    <div class="action-title">
+                        Create Backup
+                    </div>
+
+                    <div class="action-text">
+                        Generate a secure backup of all expenses,
+                        budgets, users, and audit records.
+                    </div>
+
+                    <button onclick="backup()"
+                            class="btn-action btn-backup">
+
+                        <i class="fas fa-save me-2"></i>
+                        Backup System
+
+                    </button>
+
+                </div>
+
+                
+                <div class="action-box restore-box">
+
+                    <div class="action-icon">
+                        <i class="fas fa-undo-alt"></i>
+                    </div>
+
+                    <div class="action-title">
+                        Restore System
+                    </div>
+
+                    <div class="action-text">
+                        Recover previously saved records and restore
+                        the system state.
+                    </div>
+
+                    <button onclick="restore()"
+                            class="btn-action btn-restore">
+
+                        <i class="fas fa-history me-2"></i>
+                        Restore Backup
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            
+            <div class="system-info">
+
+                <h6>
+                    <i class="fas fa-server me-2 text-primary"></i>
+                    System Status
+                </h6>
+
+                <div class="info-row">
+
+                    <span>Backup Service</span>
+
+                    <span>
+                        <span class="status-dot"></span>
+                        Active
+                    </span>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>Recovery Service</span>
+
+                    <span>
+                        <span class="status-dot"></span>
+                        Available
+                    </span>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>Last Checked</span>
+
+                    <span id="lastChecked">
+                        Just now
+                    </span>
+
+                </div>
+
+            </div>
+
+            
+            <div class="loading-spinner" id="loadingSpinner">
+
+                <div class="spinner-border text-primary"></div>
+
+                <div class="mt-2 text-muted">
+                    Processing request...
+                </div>
+
+            </div>
+
+            
+            <div id="message"></div>
+
+        </div>
+
+    </div>
+
 </div>
 
+
 <script>
-    // Backup function
-    function backup() {
-        fetch('/backup/')
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("message").innerHTML =
-                `<div class="alert alert-success">${data.message}</div>`;
-        })
-        .catch(err => {
-            document.getElementById("message").innerHTML =
-                `<div class="alert alert-danger">An error occurred while backing up.</div>`;
-        });
-    }
 
-    // Restore function
-    function restore() {
-        if (!confirm("This will overwrite your data. Continue?")) return;
+function showLoading() {
+    document.getElementById("loadingSpinner").style.display = "block";
+}
 
-        fetch('/restore/')
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("message").innerHTML =
-                `<div class="alert alert-warning">${data.message}</div>`;
-        })
-        .catch(err => {
-            document.getElementById("message").innerHTML =
-                `<div class="alert alert-danger">An error occurred while restoring.</div>`;
-        });
-    }
+function hideLoading() {
+    document.getElementById("loadingSpinner").style.display = "none";
+}
+
+
+function backup() {
+
+    showLoading();
+
+    fetch('/backup/')
+
+    .then(res => res.json())
+
+    .then(data => {
+
+        hideLoading();
+
+        document.getElementById("message").innerHTML = `
+            <div class="alert alert-success alert-dismissible fade show">
+
+                <i class="fas fa-check-circle me-2"></i>
+
+                ${data.message}
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"></button>
+
+            </div>
+        `;
+
+    })
+
+    .catch(() => {
+
+        hideLoading();
+
+        document.getElementById("message").innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+
+                <i class="fas fa-times-circle me-2"></i>
+
+                Backup failed. Please try again.
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"></button>
+
+            </div>
+        `;
+
+    });
+
+}
+
+
+function restore() {
+
+    if (!confirm(
+        "Restoring will overwrite current system data. Continue?"
+    )) return;
+
+    showLoading();
+
+    fetch('/restore/')
+
+    .then(res => res.json())
+
+    .then(data => {
+
+        hideLoading();
+
+        document.getElementById("message").innerHTML = `
+            <div class="alert alert-warning alert-dismissible fade show">
+
+                <i class="fas fa-exclamation-triangle me-2"></i>
+
+                ${data.message}
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"></button>
+
+            </div>
+        `;
+
+    })
+
+    .catch(() => {
+
+        hideLoading();
+
+        document.getElementById("message").innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+
+                <i class="fas fa-times-circle me-2"></i>
+
+                Restore failed. Please try again.
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"></button>
+
+            </div>
+        `;
+
+    });
+
+}
+
 </script>
+
 {% endblock content %}
+

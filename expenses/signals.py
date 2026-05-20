@@ -1,7 +1,8 @@
-# myapp/signals.py
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import *  # import the models you want to track
+from .models import * 
+
+
 
 @receiver(post_save, sender=ExpenseRequest)
 def log_expense_save(sender, instance, created, **kwargs):
@@ -13,6 +14,7 @@ def log_expense_save(sender, instance, created, **kwargs):
         record_id=instance.pk,
         details=f"Expense {action.lower()} with amount {instance.amount}"
     )
+    
 
 @receiver(post_delete, sender=ExpenseRequest)
 def log_expense_delete(sender, instance, **kwargs):

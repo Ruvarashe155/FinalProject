@@ -83,7 +83,7 @@ WSGI_APPLICATION = "expense_management.wsgi.application"
 #         # "ENGINE": "django.db.backends.sqlite3",
 #         # "NAME": BASE_DIR / "db.sqlite3",
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'gzu2',
+#         'NAME': 'gzutest',
 #         'USER': 'root',
 #         'PASSWORD': '',
 #         'PORT': 3306,
@@ -91,7 +91,7 @@ WSGI_APPLICATION = "expense_management.wsgi.application"
 #             'unix_socket': '/opt/lampp/var/mysql/mysql.sock', # <--- **Crucial: Use the path you found**
 #     }
 #     }
-# }
+#     }
 
 
 
@@ -106,28 +106,28 @@ WSGI_APPLICATION = "expense_management.wsgi.application"
 #     }
 # }
 
-# import os
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.environ.get("DB_NAME"),
-#         "USER": os.environ.get("DB_USER"),
-#         "PASSWORD": os.environ.get("DB_PASSWORD"),
-#         "HOST": os.environ.get("DB_HOST"),
-#         "PORT": os.environ.get("DB_PORT"),
-#     }
-# }
-
 import os
-import dj_database_url
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DB_NAME"),
+        "USER": os.environ.get("DB_USER"),
+        "PASSWORD": os.environ.get("DB_PASSWORD"),
+        "HOST": os.environ.get("DB_HOST"),
+        "PORT": os.environ.get("DB_PORT"),
+    }
 }
+
+# import os
+# import dj_database_url
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.environ.get('DATABASE_URL'),
+#         conn_max_age=600,
+#         ssl_require=True
+#     )
+# }
 
 
 
@@ -151,34 +151,27 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# settings.py
 
-# Email configuration
-# settings.py (development)
 
-# Use console backend so emails are printed in your terminal instead of being sent
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# These values are ignored when using console backend, but you can still define them
-EMAIL_HOST = 'smtp.gmail.com'   # or GZU mail server later
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-
-# Dummy values for local testing (not used with console backend)
-EMAIL_HOST_USER = 'test@example.com'
-EMAIL_HOST_PASSWORD = 'password'
-
-# Default "From" address shown in the console output
-DEFAULT_FROM_EMAIL = 'Expense Manager <noreply@gzu.ac.zw>'
-
-# EMAIL_HOST_PASSWORD = 'your_password'        # App password or mail server password
-# DEFAULT_FROM_EMAIL = 'Expense Manager <your_email@example.com>'
-
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
+
+
+# EMAIL CONFIGURATION
+# hrpv cdey wivh afhw
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = 'shokoruvarashe993@gmail.com'
+EMAIL_HOST_PASSWORD = 'hrpv cdey wivh afhw'
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LANGUAGE_CODE = "en-us"
 
@@ -197,6 +190,7 @@ LOGIN_REDIRECT_URL = 'expenses:home'
 
 MEDIA_URL ='/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -207,4 +201,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
+
 

@@ -1,39 +1,377 @@
 {% extends "base.html" %}
 
-
+{% block title %}Budget Report - GZU{% endblock %}
 
 {% block content %}
-<center><h2>Department Budget Report</h2></center>
 
-<div class="mb-3">
-  <button onclick="exportTableToExcel('example', 'budgetreport-data')" class="btn btn-success me-2">Export to Excel</button>
-  <button onclick="exportTableToPDF('budgetreport-data')" class="btn btn-danger">Export to PDF</button>
+<style>
+
+.report-header {
+    margin-bottom: 24px;
+}
+
+.report-header h2 {
+    font-weight: 700;
+    font-size: 24px;
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.report-header p {
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+
+.summary-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    transition: 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-3px);
+}
+
+.summary-card .title {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.summary-card .amount {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+
+.report-actions {
+    margin-bottom: 18px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.report-actions .btn {
+    border-radius: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    font-weight: 500;
+}
+
+
+.report-table-wrapper {
+    background: white;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+}
+
+
+.report-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+}
+
+.report-table thead {
+    background: #f8fafc;
+}
+
+.report-table th {
+    padding: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.report-table td {
+    padding: 14px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.report-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+
+.progress {
+    height: 8px;
+    border-radius: 20px;
+    background: #e2e8f0;
+}
+
+.progress-bar {
+    border-radius: 20px;
+}
+
+
+.badge-soft-green {
+    background: #dcfce7;
+    color: #166534;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-soft-yellow {
+    background: #fef9c3;
+    color: #854d0e;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-soft-red {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.remaining-positive {
+    color: #166534;
+    font-weight: 600;
+}
+
+.remaining-negative {
+    color: #991b1b;
+    font-weight: 700;
+}
+
+</style>
+
+
+
+<div class="report-header">
+
+    <h2>
+        <i class="fas fa-chart-pie text-primary me-2"></i>
+        Department Budget Report
+    </h2>
+
+    <p>
+        Overview of department budgets, expenditures, and balances
+    </p>
+
 </div>
 
-<table class="datatable" id="example">
-  <thead>
-    <tr>
-      <th>Department</th>
-      <th>Budget</th>
-      <th>Spent</th>
-      <th>Remaining</th>
-      <th>Period</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in report %}
-    
-    {% if user.department.name == row.department or user.role == "Head" or user.role == "Finance" or user.role == "Admin" %}
-      <tr>
-        <td>{{ row.department }}</td>
-        <td>{{ row.budget }}</td>
-        <td>{{ row.spent }}</td>
-        <td>{{ row.remaining }}</td>
-        <td>{{ row.period }}</td>
-      </tr>
-      {%endif%}
-    {% endfor %}
-  </tbody>
-</table>
+
+
+<div class="summary-cards">
+
+    <div class="summary-card">
+
+        <div class="title">
+            Total Budget
+        </div>
+
+        <div class="amount text-primary">
+            ${{ total_budget|default:"0.00" }}
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <div class="title">
+            Total Spent
+        </div>
+
+        <div class="amount text-danger">
+            ${{ total_spent|default:"0.00" }}
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <div class="title">
+            Remaining Balance
+        </div>
+
+        <div class="amount text-success">
+            ${{ total_remaining|default:"0.00" }}
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div class="report-actions">
+
+    <button onclick="exportTableToExcel('example', 'budgetreport-data')"
+            class="btn btn-success">
+
+        <i class="fas fa-file-excel me-1"></i>
+        Export Excel
+
+    </button>
+
+
+    <button onclick="exportTableToPDF('example','budgetreport-data')"
+            class="btn btn-danger">
+
+        <i class="fas fa-file-pdf me-1"></i>
+        Export PDF
+
+    </button>
+
+</div>
+
+
+
+<div class="report-table-wrapper">
+
+    <div class="table-responsive">
+
+        <table class="table report-table datatable" id="example">
+
+            <thead>
+
+                <tr>
+
+                    <th>Department</th>
+                    <th>Budget</th>
+                    <th>Spent</th>
+                    <th>Remaining</th>
+                    <th>Usage</th>
+                    <th>Period</th>
+                    <th>Status</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for row in report %}
+
+                {% if user.department.name == row.department or user.role == "Head" or user.role == "Finance" or user.role == "Admin" %}
+
+                <tr>
+
+                    <td class="fw-semibold">
+                        {{ row.department }}
+                    </td>
+
+
+                    <td>
+                        ${{ row.budget }}
+                    </td>
+
+
+                    <td>
+                        ${{ row.spent }}
+                    </td>
+
+
+                    <td class="
+                        {% if row.remaining < 0 %}
+                            remaining-negative
+                        {% else %}
+                            remaining-positive
+                        {% endif %}
+                    ">
+                        ${{ row.remaining }}
+                    </td>
+
+
+                    <td width="180">
+
+                        <div class="progress">
+
+                            <div class="progress-bar
+
+                                {% if row.percentage_used >= 90 %}
+                                    bg-danger
+
+                                {% elif row.percentage_used >= 70 %}
+                                    bg-warning
+
+                                {% else %}
+                                    bg-success
+
+                                {% endif %}
+
+                                "
+                                style="width: {{ row.percentage_used }}%">
+                            </div>
+
+                        </div>
+
+                        <small class="text-muted">
+                            {{ row.percentage_used }}% used
+                        </small>
+
+                    </td>
+
+
+                    <td class="text-muted">
+                        {{ row.period }}
+                    </td>
+
+
+                    <td>
+
+                        {% if row.remaining <= 0 %}
+
+                            <span class="badge-soft-red">
+                                Exhausted
+                            </span>
+
+                        {% elif row.percentage_used > 70 %}
+
+                            <span class="badge-soft-yellow">
+                                Warning
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge-soft-green">
+                                Healthy
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endif %}
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
 
 {% endblock content %}

@@ -4,85 +4,497 @@
 {% block title %}Expense Report - GZU{% endblock %}
 
 {% block content %}
-<div class=" mt-4">
-    <h2 class="text-center mb-4">Expense Report</h2>
-    <hr class="text-success">
 
-    <!-- Filter Form -->
-    <form method="get" class="row g-3 mb-4">
+<style>
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 0;
+}
+
+
+.card-box {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+}
+
+
+.filter-box {
+    background: linear-gradient(to right, #f8fafc, #f1f5f9);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 25px;
+}
+
+
+.form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.form-control,
+.form-select {
+    border-radius: 10px;
+    min-height: 44px;
+    border: 1px solid #cbd5e1;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 0.15rem rgba(37,99,235,0.15);
+}
+
+
+.btn {
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+}
+
+
+.report-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+}
+
+.report-table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 14px;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.report-table tbody td {
+    padding: 15px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.report-table tbody tr {
+    transition: 0.2s ease;
+}
+
+.report-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+
+.amount {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-pending {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.status-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-disbursed {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.summary-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.summary-card small {
+    display: block;
+    color: #64748b;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.summary-card h4 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+
+.empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 5px 10px;
+}
+
+</style>
+
+
+<div class="page-header">
+
+    <div>
+        <div class="page-title">
+            Expense Report
+        </div>
+
+        <div class="page-subtitle">
+            Filter, monitor, and analyze departmental expenses
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <button onclick="exportTableToExcel('expenseTable', 'expense-report')"
+                class="btn btn-success">
+            <i class="fas fa-file-excel me-1"></i>
+            Export Excel
+        </button>
+
+        <button onclick="exportTableToPDF('expenseTable','expense-report')"
+                class="btn btn-danger">
+            <i class="fas fa-file-pdf me-1"></i>
+            Export PDF
+        </button>
+    </div>
+
+</div>
+
+
+<div class="summary-grid">
+
+    <div class="summary-card">
+        <small>Total Expenses</small>
+        <h4>{{ expenses|length }}</h4>
+    </div>
+
+    <div class="summary-card">
+        <small>Approved Requests</small>
+        <h4>
+            {{ approved_count|default:"0" }}
+        </h4>
+    </div>
+
+    <div class="summary-card">
+        <small>Pending Requests</small>
+        <h4>
+            {{ pending_count|default:"0" }}
+        </h4>
+    </div>
+
+    <div class="summary-card">
+        <small>Total Amount</small>
+        <h4>
+            ${{ total_amount|default:"0.00" }}
+        </h4>
+    </div>
+
+</div>
+
+
+<div class="filter-box">
+
+    <form method="GET" class="row g-3">
+
         <div class="col-md-3">
-            <label class="form-label">Start Date</label>
-            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+            <label class="form-label">
+                Start Date
+            </label>
+
+            <input type="date"
+                   name="start_date"
+                   value="{{ start_date }}"
+                   class="form-control">
         </div>
 
         <div class="col-md-3">
-            <label class="form-label">End Date</label>
-            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+            <label class="form-label">
+                End Date
+            </label>
+
+            <input type="date"
+                   name="end_date"
+                   value="{{ end_date }}"
+                   class="form-control">
         </div>
 
         <div class="col-md-3">
-            <label class="form-label">Department</label>
+            <label class="form-label">
+                Department
+            </label>
+
             <select name="department" class="form-select">
-                <option value="all">All</option>
+
+                <option value="all">
+                    All Departments
+                </option>
+
                 {% for dept in departments %}
-                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
-                        {{ dept.name }}
-                    </option>
+                <option value="{{ dept.id }}"
+                    {% if selected_department == dept.id|stringformat:"s" %}
+                        selected
+                    {% endif %}>
+                    {{ dept.name }}
+                </option>
                 {% endfor %}
+
             </select>
         </div>
 
         <div class="col-md-3">
-            <label class="form-label">Category</label>
+            <label class="form-label">
+                Category
+            </label>
+
             <select name="category" class="form-select">
-                <option value="all">All</option>
+
+                <option value="all">
+                    All Categories
+                </option>
+
                 {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
-                        {{ cat.name }}
-                    </option>
+                <option value="{{ cat.id }}"
+                    {% if selected_category == cat.id|stringformat:"s" %}
+                        selected
+                    {% endif %}>
+                    {{ cat.name }}
+                </option>
                 {% endfor %}
+
             </select>
         </div>
 
-        <div class="col-12 text-center mt-3">
-            <button type="submit" class="btn btn-primary">Filter</button>
+        <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+
+            <a href="{% url 'expenses:expense_report' %}"
+               class="btn btn-outline-secondary">
+                Reset
+            </a>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-1"></i>
+                Apply Filters
+            </button>
+
         </div>
+
     </form>
 
-    <hr class="text-success">
-
-    <!-- Expense Report Table -->
-    <table class="table table-hover table-bordered datatable" id="example">
-        <thead class="table-dark">
-            <tr>
-                <th>Date</th>
-                <th>Department</th>
-                <th>Category</th>
-                <th>User</th>
-                <th>Expense Name</th>
-                <th>Amount ($)</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for exp in expenses %}
-                {% if user.department.name == exp.department.name or user.role == "Head" or user.role == "Admin" %}
-                <tr>
-                    <td>{{ exp.date }}</td>
-                    <td>{{ exp.department.name }}</td>
-                    <td>{% if exp.category %}{{ exp.category.name }}{% else %}N/A{% endif %}</td>
-                    <td>{{ exp.user.fullname }}</td>
-                    <td>{{ exp.name }}</td>
-                    <td>${{ exp.total_amount }}</td>
-                    <td>{{ exp.status }}</td>
-                </tr>
-                {% endif %}
-            {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center text-muted">No expenses found for the selected filters.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
+
+
+<div class="card-box">
+
+    <div class="table-responsive">
+
+        <table class="table report-table" id="expenseTable">
+
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Department</th>
+                    <th>Category</th>
+                    <th>Requested By</th>
+                    <th>Expense</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for exp in expenses %}
+
+                {% if user.department.name == exp.department.name or user.role == "Head" or user.role == "Finance" or user.role == "Admin" %}
+
+                <tr>
+
+                    <td>
+                        {{ exp.date }}
+                    </td>
+
+                    <td class="fw-semibold">
+                        {{ exp.department.name }}
+                    </td>
+
+                    <td>
+                        {{ exp.category.name|default:"N/A" }}
+                    </td>
+
+                    <td>
+                        {{ exp.user.fullname }}
+                    </td>
+
+                    <td>
+                        {{ exp.name }}
+                    </td>
+
+                    <td class="amount">
+                        ${{ exp.total_amount }}
+                    </td>
+
+                    <td>
+
+                        {% if exp.status == "Approved" %}
+
+                            <span class="status-badge status-approved">
+                                <i class="fas fa-check-circle"></i>
+                                Approved
+                            </span>
+
+                        {% elif exp.status == "Pending" %}
+
+                            <span class="status-badge status-pending">
+                                <i class="fas fa-clock"></i>
+                                Pending
+                            </span>
+
+                        {% elif exp.status == "Rejected" %}
+
+                            <span class="status-badge status-rejected">
+                                <i class="fas fa-times-circle"></i>
+                                Rejected
+                            </span>
+
+                        {% elif exp.status == "Disbursed" %}
+
+                            <span class="status-badge status-disbursed">
+                                <i class="fas fa-money-bill-wave"></i>
+                                Disbursed
+                            </span>
+
+                        {% else %}
+
+                            <span class="status-badge status-pending">
+                                {{ exp.status }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endif %}
+
+                {% empty %}
+
+                <tr>
+                    <td colspan="7">
+
+                        <div class="empty-state">
+
+                            <i class="fas fa-folder-open fa-2x mb-3"></i>
+
+                            <div class="fw-semibold">
+                                No expenses found
+                            </div>
+
+                            <small>
+                                Try adjusting your filters
+                            </small>
+
+                        </div>
+
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<script>
+
+$(document).ready(function () {
+
+    if ($.fn.DataTable.isDataTable('#expenseTable')) {
+        $('#expenseTable').DataTable().destroy();
+    }
+
+    $('#expenseTable').DataTable({
+        pageLength: 10,
+        responsive: true,
+        autoWidth: false,
+        order: [[0, 'desc']]
+    });
+
+});
+
+</script>
+
 {% endblock %}
