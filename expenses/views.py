@@ -411,28 +411,28 @@ def create_expense_request(request):
 
                 index += 1
 
-            send_mail(
-            subject='Expense Request Submitted',
+        #     send_mail(
+        #     subject='Expense Request Submitted',
 
-            message=f'''
-        Hello {request.user.fullname},
+        #     message=f'''
+        # Hello {request.user.fullname},
 
-        Your expense request has been submitted successfully.
+        # Your expense request has been submitted successfully.
 
-        Expense Title: {expense_request.name}
-        Amount: {expense_request.total_amount}
-        Status: {expense_request.status}
+        # Expense Title: {expense_request.name}
+        # Amount: {expense_request.total_amount}
+        # Status: {expense_request.status}
 
-        Thank you.
-        Expense Management System
-        ''',
+        # Thank you.
+        # Expense Management System
+        # ''',
 
-            from_email=settings.EMAIL_HOST_USER,
+        #     from_email=settings.EMAIL_HOST_USER,
 
-            recipient_list=[request.user.email],
+        #     recipient_list=[request.user.email],
 
-            fail_silently=False,
-        )
+        #     fail_silently=False,
+        # )
 
             messages.success(request, "Expense Request created successfully!")
             return redirect("expenses:create_expense")
