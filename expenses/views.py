@@ -983,6 +983,8 @@ def restore_database(request):
                 "pg_restore",
                 "--clean",
                 "--if-exists",
+                "--no-owner",
+                "--no-privileges",
                 "-h", DB_HOST,
                 "-p", str(DB_PORT),
                 "-U", DB_USER,
