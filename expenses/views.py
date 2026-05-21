@@ -394,34 +394,37 @@ def create_expense_request(request):
                         amount=item_amount
                     )
                     # log_action(request.user, "Expense Items Saved", ExpenseItem, details=f"Department '{ExpenseItem.description}' saved")
-                    send_mail(
-                    subject='Expense Request Submitted',
-
-                    message=f'''
-                Hello {request.user.fullname},
-
-                Your expense request has been submitted successfully.
-
-                Expense Title: {expense_request.name}
-                Amount: {expense_request.total_amount}
-                Status: {expense_request.status}
-
-                Thank you.
-                Expense Management System
-                ''',
-
-                    from_email=settings.EMAIL_HOST_USER,
-
-                    recipient_list=[request.user.email],
-
-                    fail_silently=False,
-                )
+                
                 else:
                     break 
 
                 index += 1
 
+                send_mail(
+                subject='Expense Request Submitted',
+
+                message=f'''
+            Hello {request.user.fullname},
+
+            Your expense request has been submitted successfully.
+
+            Expense Title: {expense_request.name}
+            Amount: {expense_request.total_amount}
+            Status: {expense_request.status}
+
+            Thank you.
+            Expense Management System
+            ''',
+
+                from_email=settings.EMAIL_HOST_USER,
+
+                recipient_list=[request.user.email],
+
+                fail_silently=False,
+            )
+
             messages.success(request, "Expense Request created successfully!")
+            return redirect("expenses:create_expense")
            
 
         except Exception as e:
