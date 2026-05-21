@@ -45,6 +45,7 @@ urlpatterns = [
     path('audit_log/', views.audit_log_view, name ="audit_log"),
     path('download-template/', views.download_user_template, name='download_user_template'),
     path('download_template/', views.download_department_template, name='download_department_template'),
+    path('delete-user/<int:id>/',views.delete_user,name='delete_user'),
 
 
 
