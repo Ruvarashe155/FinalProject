@@ -961,49 +961,40 @@ def backup_database(request):
 
 @login_required
 def restore_database(request):
-
     files = sorted(os.listdir(BACKUP_FOLDER), reverse=True)
 
     if not files:
-        return JsonResponse({
-            "message": "No backup found"
-        }, status=404)
+        return JsonResponse({"message": "No backup found"}, status=404)
 
     latest_backup = os.path.join(BACKUP_FOLDER, files[0])
 
-    env = os.environ.copy()
-    env["PGPASSWORD"] = DB_PASSWORD
-
     try:
-
         result = subprocess.run(
             [
                 "pg_restore",
-                "-h", DB_HOST,
-                "-p", str(DB_PORT),
-                "-U", DB_USER,
-                "-d", DB_NAME,
+                "--clean",          # drops existing objects first
+                "--if-exists",
+                "--no-owner",
+                "--dbname", DATABASE_URL,
                 latest_backup
             ],
-            env=env,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE
         )
 
         if result.returncode == 0:
             return JsonResponse({
-                "message": f"Restored from {files[0]}"
+                "message": f"Restored successfully from {files[0]}"
             })
 
-        else:
-            return JsonResponse({
-                "message": result.stderr.decode()
-            }, status=500)
+        return JsonResponse({
+            "message": result.stderr.decode()
+        }, status=500)
 
     except Exception as e:
         return JsonResponse({
             "message": str(e)
         }, status=500)
-
 
 @login_required
 def expense_report_view(request):
