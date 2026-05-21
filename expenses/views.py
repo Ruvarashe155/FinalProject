@@ -890,62 +890,119 @@ DB_NAME = settings.DATABASES['default']['NAME']
 DB_USER = settings.DATABASES['default']['USER']
 BACKUP_FOLDER = "backups"
 
-SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  
+# SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  
 
-# SOCKET_PATH = settings.DATABASES['default']['OPTIONS']['unix_socket']  # Use the custom socket path
+# # 
 
+
+import os
+import subprocess
+from datetime import datetime
+from django.conf import settings
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+DB_NAME = settings.DATABASES['default']['NAME']
+DB_USER = settings.DATABASES['default']['USER']
+DB_PASSWORD = settings.DATABASES['default']['PASSWORD']
+DB_HOST = settings.DATABASES['default']['HOST']
+DB_PORT = settings.DATABASES['default']['PORT']
+
+BACKUP_FOLDER = "database_backups"
 
 os.makedirs(BACKUP_FOLDER, exist_ok=True)
 
+
 @login_required
 def backup_database(request):
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_file = os.path.join(BACKUP_FOLDER, f"backup_{timestamp}.sql")
+
+    backup_file = os.path.join(
+        BACKUP_FOLDER,
+        f"backup_{timestamp}.sql"
+    )
+
+    env = os.environ.copy()
+    env["PGPASSWORD"] = DB_PASSWORD
 
     try:
-       
+
         result = subprocess.run(
             [
-                "mysqldump",
-                "-u", DB_USER,  
-                "--socket", SOCKET_PATH, 
+                "pg_dump",
+                "-h", DB_HOST,
+                "-p", str(DB_PORT),
+                "-U", DB_USER,
+                "-F", "c",
+                "-f", backup_file,
                 DB_NAME
             ],
-            stdout=open(backup_file, "w"),
+            env=env,
             stderr=subprocess.PIPE
         )
 
         if result.returncode == 0:
-            return JsonResponse({"message": "Backup successful", "file": backup_file})
+            return JsonResponse({
+                "message": "Backup successful",
+                "file": backup_file
+            })
+
         else:
-            error_message = result.stderr.decode("utf-8")
-            return JsonResponse({"message": f"Backup failed: {error_message}"}, status=500)
+            return JsonResponse({
+                "message": result.stderr.decode()
+            }, status=500)
 
     except Exception as e:
-        return JsonResponse({"message": f"Error: {str(e)}"}, status=500)
-    
+        return JsonResponse({
+            "message": str(e)
+        }, status=500)
 
-    
+
 @login_required
 def restore_database(request):
+
     files = sorted(os.listdir(BACKUP_FOLDER), reverse=True)
 
     if not files:
-        return JsonResponse({"message": "No backup found"}, status=404)
+        return JsonResponse({
+            "message": "No backup found"
+        }, status=404)
 
     latest_backup = os.path.join(BACKUP_FOLDER, files[0])
 
+    env = os.environ.copy()
+    env["PGPASSWORD"] = DB_PASSWORD
 
-    command = f"mysql -u {DB_USER} --socket=/opt/lampp/var/mysql/mysql.sock {DB_NAME} < {latest_backup}"
+    try:
 
-    # command = f"mysql -u {DB_USER}  {DB_NAME} < {latest_backup}"
-    result = os.system(command)
+        result = subprocess.run(
+            [
+                "pg_restore",
+                "-h", DB_HOST,
+                "-p", str(DB_PORT),
+                "-U", DB_USER,
+                "-d", DB_NAME,
+                latest_backup
+            ],
+            env=env,
+            stderr=subprocess.PIPE
+        )
 
-    if result == 0:
-        return JsonResponse({"message": f"Restored from {files[0]}"})
-    else:
-        return JsonResponse({"message": "Restore failed"}, status=500)
+        if result.returncode == 0:
+            return JsonResponse({
+                "message": f"Restored from {files[0]}"
+            })
 
+        else:
+            return JsonResponse({
+                "message": result.stderr.decode()
+            }, status=500)
+
+    except Exception as e:
+        return JsonResponse({
+            "message": str(e)
+        }, status=500)
 
 
 @login_required
