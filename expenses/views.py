@@ -931,6 +931,8 @@ def backup_database(request):
         result = subprocess.run(
             [
                 "pg_dump",
+                "--no-owner",
+                "--no-privileges",
                 "-h", DB_HOST,
                 "-p", str(DB_PORT),
                 "-U", DB_USER,
