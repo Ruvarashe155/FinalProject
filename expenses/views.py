@@ -276,6 +276,37 @@ def save_user(request):
 
 
 @login_required
+def delete_user(request, id):
+
+    user_to_delete = get_object_or_404(CustomUser, id=id)
+
+    # Prevent deleting yourself
+    if request.user == user_to_delete:
+        messages.error(request, "You cannot delete your own account.")
+        return redirect('expenses:save_user')
+
+    try:
+        fullname = user_to_delete.fullname
+
+        user_to_delete.delete()
+
+        log_action(
+            request.user,
+            "User Deleted",
+            user_to_delete,
+            details=f"User '{fullname}' deleted"
+        )
+
+        messages.success(request, "User deleted successfully.")
+
+    except Exception as e:
+        messages.error(request, f"Error deleting user: {e}")
+
+    return redirect('expenses:save_user')    
+
+
+
+@login_required
 def download_user_template(request):
    
     columns = ["fullname", "email", "password", "role", "department_id", "active"]
