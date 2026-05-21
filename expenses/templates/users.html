@@ -546,7 +546,6 @@
                         <th>Department</th>
                         <th>Status</th>
                         <th>Action</th>
-                        <th>Delete</th>
 
                     </tr>
 
@@ -662,14 +661,6 @@
 
                             </button>
 
-                        </td>
-                        <td>
-                            <button>
-                                <a href="{% url 'expenses:delete_user' user.id %}"
-                                onclick="return confirm('Are you sure you want to delete this user?')">
-                                Delete
-                                </a>
-                            </button>
                         </td>
 
                     </tr>
