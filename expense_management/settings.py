@@ -107,6 +107,7 @@ WSGI_APPLICATION = "expense_management.wsgi.application"
 # }
 
 import os
+import dj_database_url
 
 DATABASES = {
     "default": {
@@ -202,3 +203,19 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
+
+import os
+import django
+
+django.setup()
+
+from expenses.models import CustomUser
+
+if not CustomUser.objects.filter(email="admin@gmail.com").exists():
+    CustomUser.objects.create_superuser(
+        email="admin@gmail.com",
+        password="1234",
+        fullname="System Admin",
+        role="Admin"
+    )
+    print("Superuser created successfully")
