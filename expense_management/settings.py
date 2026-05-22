@@ -107,7 +107,7 @@ WSGI_APPLICATION = "expense_management.wsgi.application"
 # }
 
 import os
-import dj_database_url
+# import dj_database_url
 
 DATABASES = {
     "default": {
