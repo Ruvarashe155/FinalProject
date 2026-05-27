@@ -263,8 +263,8 @@ def save_user(request):
                 is_active= is_active
             )
             log_action(request.user, "User Saved", user, details=f"User '{user.fullname}' saved")
-
-        return redirect('expenses:save_user')  
+            messages.success(request, "User saved successfully!")
+           
 
     context = {
         'department_list': Department.objects.all(),
@@ -322,7 +322,6 @@ def download_user_template(request):
         df.to_excel(writer, index=False, sheet_name='Users')
 
     return response
-
 
 
 
@@ -415,8 +414,6 @@ def create_expense_request(request):
             
 
 
-            
-          
             index = 0
             while True:
                 desc_key = f"items[{index}][description]"
@@ -625,7 +622,6 @@ def approve_expense_request(request, pk):
 
     fail_silently=False,
 )
-
 
    
     DepartmentExpenseRequestHistory.objects.create(
