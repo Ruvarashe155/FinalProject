@@ -16,7 +16,6 @@ path = '/home/Rue/FinalProject'
 if path not in sys.path:
     sys.path.insert(0, path)
 
-# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "expense_management.settings")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "FinalProject.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "expense_management.settings")
 
 application = get_wsgi_application()
