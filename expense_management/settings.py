@@ -207,15 +207,15 @@ print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
 import os
 import django
 
-# django.setup()
+django.setup()
 
-# from expenses.models import CustomUser
+from expenses.models import CustomUser
 
-# if not CustomUser.objects.filter(email="admin@gmail.com").exists():
-#     CustomUser.objects.create_superuser(
-#         email="admin@gmail.com",
-#         password="1234",
-#         fullname="System Admin",
-#         role="Admin"
-#     )
-#     print("Superuser created successfully")
+if not CustomUser.objects.filter(email="admin@gmail.com").exists():
+    CustomUser.objects.create_superuser(
+        email="admin@gmail.com",
+        password="1234",
+        fullname="System Admin",
+        role="Admin"
+    )
+    print("Superuser created successfully")
